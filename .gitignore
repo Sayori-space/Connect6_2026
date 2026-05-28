@@ -1,0 +1,51 @@
+# Python caches and local test output
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local IDE state
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+.claude/
+
+# Local backups and generated artifacts
+back_up/
+*.log
+
+# Large training outputs and model checkpoints
+ai/models/
+ai/models_fresh_20260420/
+*.pth
+*.pkl
+
+# Deep-learning training sources and notes kept local
+ai/TRAINING.md
+ai/alphago_zero_ai.py
+ai/mcts.py
+ai/neural_net.py
+ai/observability.py
+ai/quick_diagnose.py
+ai/self_play.py
+ai/train.py
+ai/training_loop.py
+docs/alphazero_connect6_repair_plan.md
+docs/superpowers/
+tests/test_mcts_tactics.py
+tests/test_training_loop_bootstrap.py
+thesis/
+
+# Local generated game records and command output
+chess_manual/
+C6-*.txt
+stdout
+CLAUDE.md
+
+# OS metadata
+.DS_Store
+Thumbs.db
