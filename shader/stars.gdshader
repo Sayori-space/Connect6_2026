@@ -26,8 +26,8 @@ uniform float cloud_color_ci3 : hint_range(0, 1., 0.01) = 0.9;
 uniform float cloud_color_shiftx : hint_range(-100, 100., 0.5) = 0.;
 uniform float cloud_color_shifty : hint_range(-100, 100., 0.5) = 0.;
 
-uniform vec3 background_color : source_color = vec3(0.02, 0.04, 0.12); // Dark blue background
-// Star-related functions
+uniform vec3 background_color : source_color = vec3(0.02, 0.04, 0.12); // 深蓝色背景
+// 星点相关函数
 float onedx(float x) {
     return x == 0. ? 1. : 1.0/x;
 }
@@ -48,12 +48,12 @@ float getI(vec2 uv, float f, vec2 SIZE) {
     return onedx2(getBetaW(uv.x, f, SIZE.x))*onedx2(getBetaH(uv.y, f, SIZE.y));
 }
 
-// Random function
+// 随机函数
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43759.5453123);
 }
 
-// Noise function
+// 噪声函数
 float noise(vec2 st) {
     vec2 i = floor(st);
     vec2 f = fract(st);
@@ -70,7 +70,7 @@ float noise(vec2 st) {
            (d - b) * u.x * u.y;
 }
 
-// Fractal noise (FBM)
+// 分形噪声（FBM）
 float fbm(vec2 st) {
 
     float value = 0.0;
@@ -79,7 +79,7 @@ float fbm(vec2 st) {
 
     for(int i = 0; i < 5; i++) {
         value += fbm_amp * noise(st * freq);
-        freq *= 2.7;//2.
+        freq *= 2.7;// 原值 2.
         amp *= 0.5;
     }
 
@@ -136,29 +136,29 @@ void fragment() {
 
     vec2 cuv = (st - 0.5) * 2.0;
 
-    // Multi-layer star effect
+    // 多层星点效果
     for(int layer = 0; layer < 4; layer++) {
 
         float layerScale = exp(float(layer*layer_parascale + 1) * density * 0.002);
         vec2 layerSpeed = vec2(speedx, speedy) * vec2(1.0 + float(layer) * 0.3);
         float layerSize = star_size * (1.0 - float(layer) * 0.2);
 
-        // Calculate coordinates for each layer
+        // 计算每一层的坐标
         vec2 layerSt = st * layerScale;
         vec2 cuvSt = cuv;
 
-        // Add time-based animation
+        // 添加基于时间的动画
         vec2 timeOffset = TIME * layerSpeed * 1.0;
         layerSt -= timeOffset;
 
-        // Get grid coordinates
+        // 获取网格坐标
         vec2 gridSt = fract(layerSt);
         vec2 gridId = floor(layerSt);
 
-        // Generate random star in each grid
+        // 在每个网格中生成随机星点
         float randSeed = random(gridId);
 
-        // Random position within grid
+        // 网格内随机位置
         vec2 snowPos = vec2(
             0.5 + 0.3 * sin(randSeed * 6.28 + TIME * star_horizontal_wave),
             0.5 + 0.2 * cos(randSeed * 12.56)
@@ -166,27 +166,27 @@ void fragment() {
 
         float dist = distance(gridSt, snowPos);
 
-        // Star size and brightness
+        // 星点尺寸和亮度
         float snowSize = layerSize * 0.01 * (0.5 + 0.5 * randSeed);
         float brightness = 1.0 - float(layer) * 0.3;
 
         float M = exp(-dist * dist / (snowSize * snowSize));
 
-        // Rotation
+        // 旋转
         float rotateAngle = 0.01 * (TIME * cos(randSeed * 120.0 + TIME * 0.05));
 
-        // Create star shape
+        // 创建星点形状
         vec2 fst = rotate(cuvSt - (getSnowflakeWorldCenter(gridId, timeOffset, snowPos, layerScale) - 0.5)*2.0, rotateAngle);
 
         float snowflake = M*0.5*(getI(fst, 0.8 - dist*42.0, vec2(1.0/snowSize)) + 1.);
 
-        // Add twinkle effect
+        // 添加闪烁效果
         float twinkle = (1. - twinkle_effect) + twinkle_effect * (sin(randSeed * 100.0 + TIME * twinkle_speed) * cos(randSeed * 120.0 + TIME * (twinkle_speed + 2.)));
         snowflake *= twinkle;
 
         vec3 colortype = vec3(random(gridId-3.0), random(gridId+7.0), random(gridId+5.0));
 
-        // Accumulate star effect
+        // 累积星点效果
         color = max(color + (snowflake * brightness) * colortype, color);
     }
 

@@ -1,10 +1,10 @@
 """
-pixel_widgets.py – shared pixel-art primitives.
+pixel_widgets.py：共享像素风基础控件。
 
-  load_pixel_font()   – load VonwaonBitmap, return family name
-  pixel_font(size)    – QFont using the pixel typeface
-  PixelButton         – double-border retro button (black/white only)
-  StarBackground      – static star-field on pure black
+  load_pixel_font()   — 加载 VonwaonBitmap，返回字体族名
+  pixel_font(size)    — 使用像素字体的 QFont
+  PixelButton         — 双边框复古按钮（仅黑白配色）
+  StarBackground      — 纯黑背景上的静态星空
 """
 
 import os
@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QPushButton, QSizePolicy, QWidget
 
 from ui.sound_manager import SoundManager
 
-# ── Font ───────────────────────────────────────────────────────────────
+# ── 字体 ─────────────────────────────────────────────────────────────
 
 _FONT_PATH = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "font", "VonwaonBitmap-16px.ttf")
@@ -26,7 +26,7 @@ _PIXEL_FAMILY: str = ""
 
 
 def load_pixel_font() -> str:
-    """Register the bitmap font and return its family name."""
+    """注册位图字体并返回其字体族名。"""
     global _PIXEL_FAMILY
     if _PIXEL_FAMILY:
         return _PIXEL_FAMILY
@@ -39,29 +39,29 @@ def load_pixel_font() -> str:
 
 
 def pixel_font(size: int = 12, bold: bool = False) -> QFont:
-    """Return a QFont using the pixel typeface (fallback: Courier New)."""
+    """返回使用像素字体的 QFont；未加载时回退到 Courier New。"""
     family = _PIXEL_FAMILY or "Courier New"
     f = QFont(family, size)
     f.setBold(bold)
     return f
 
 
-# ── Double-border pixel button ─────────────────────────────────────────
+# ── 双边框像素按钮 ───────────────────────────────────────────────────
 
 class PixelButton(QPushButton):
     """
-    Retro double-border button (mirrors the reference screenshots).
+    复古双边框按钮，与参考截图保持一致。
 
-    Normal  : transparent bg · white double border · white text
-    Hover   : white bg · black double border · black text  (animated)
-    Pressed : same as hover, slightly transparent
-    Disabled: dim border and text
+    普通：透明背景 · 白色双边框 · 白色文本
+    悬停：白色背景 · 黑色双边框 · 黑色文本（动画）
+    按下：与悬停一致，但略透明
+    禁用：暗色边框和文本
     """
 
-    _OUTER_R   = 10    # outer corner radius (px)
-    _GAP       = 5     # gap between outer and inner border (px)
-    _BW        = 1.5   # border line width
-    _ANIM_STEP = 0.14  # progress per 16 ms frame ≈ 110 ms full transition
+    _OUTER_R   = 10    # 外边框圆角半径（px）
+    _GAP       = 5     # 外边框与内边框之间的间距（px）
+    _BW        = 1.5   # 边框线宽
+    _ANIM_STEP = 0.14  # 每 16 ms 帧的进度，完整过渡约 110 ms
 
     def __init__(self, text: str = "", font_size: int = 14, parent=None,
                  silent: bool = False):
@@ -73,7 +73,7 @@ class PixelButton(QPushButton):
         self.setMinimumHeight(48)
         self.setCursor(Qt.PointingHandCursor)
         self._hovered = False
-        self._hover_progress: float = 0.0   # 0.0 = normal, 1.0 = fully hovered
+        self._hover_progress: float = 0.0   # 0.0 = 普通，1.0 = 完全悬停
         self._silent = silent
 
         self._anim_timer = QTimer(self)
@@ -83,7 +83,7 @@ class PixelButton(QPushButton):
         if not self._silent:
             self.clicked.connect(lambda: SoundManager.instance().play_click())
 
-    # ── animation ──────────────────────────────────────────────────────
+    # ── 动画 ─────────────────────────────────────────────────────────
 
     def _tick_anim(self) -> None:
         target = 1.0 if (self._hovered and self.isEnabled()) else 0.0
@@ -95,7 +95,7 @@ class PixelButton(QPushButton):
         if self._hover_progress == target:
             self._anim_timer.stop()
 
-    # ── painting ───────────────────────────────────────────────────────
+    # ── 绘制 ─────────────────────────────────────────────────────────
 
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
@@ -111,21 +111,21 @@ class PixelButton(QPushButton):
         IR = max(3, OR - 3)
 
         if disabled:
-            # Static: solid black fill, dim borders/text
+            # 静态：纯黑填充，暗色边框/文本
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(0, 0, 0))
             p.drawRoundedRect(QRectF(0, 0, w, h), OR, OR)
             bd = QColor(60, 60, 60)
             fg = QColor(70, 70, 70)
         elif pressed:
-            # Static: full white fill, black text
+            # 静态：全白填充，黑色文本
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(255, 255, 255, 210))
             p.drawRoundedRect(QRectF(0, 0, w, h), OR, OR)
             bd = QColor(0, 0, 0)
             fg = QColor(0, 0, 0)
         else:
-            # Animated: fade white bg in, cross-fade borders/text white→black
+            # 动画：白色背景淡入，边框/文本从白色交叉淡变到黑色
             t = self._hover_progress
             bg_alpha = int(255 * t)
             if bg_alpha > 0:
@@ -136,20 +136,20 @@ class PixelButton(QPushButton):
             bd = QColor(v, v, v)
             fg = QColor(v, v, v)
 
-        # Outer border
+        # 外边框
         p.setPen(QPen(bd, bw))
         p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(QRectF(bw / 2, bw / 2, w - bw, h - bw), OR, OR)
 
-        # Inner border
+        # 内边框
         p.drawRoundedRect(QRectF(G, G, w - 2 * G, h - 2 * G), IR, IR)
 
-        # Label
+        # 标签
         p.setPen(fg)
         p.setFont(self.font())
         p.drawText(QRectF(0, 0, w, h), Qt.AlignCenter, self.text())
 
-    # ── hover tracking ─────────────────────────────────────────────────
+    # ── 悬停跟踪 ─────────────────────────────────────────────────────
 
     def enterEvent(self, event) -> None:
         self._hovered = True
@@ -164,15 +164,15 @@ class PixelButton(QPushButton):
         super().leaveEvent(event)
 
 
-# ── Star field ─────────────────────────────────────────────────────────
+# ── 星空 ─────────────────────────────────────────────────────────────
 
-_Star = Tuple[float, float, int, int]   # (x_frac, y_frac, size_px, brightness)
+_Star = Tuple[float, float, int, int]   # (x 比例, y 比例, 像素尺寸, 亮度)
 
 
 class StarBackground(QWidget):
     """
-    Static star-field widget (pure black background + tiny white dots).
-    Stars are seeded deterministically so they stay consistent.
+    静态星空控件（纯黑背景 + 微小白点）。
+    星点使用确定性种子生成，因此每次显示都一致。
     """
 
     def __init__(self, count: int = 180, parent=None):
@@ -194,9 +194,9 @@ class StarBackground(QWidget):
             p.fillRect(int(sx * w), int(sy * h), sz, sz, QColor(br, br, br))
 
 
-# ── Replace StarBackground with the GPU shader version if available ──────
-# home_screen.py / dialogs.py import StarBackground from here; swapping it
-# out here means no changes needed elsewhere.
+# ── 如可用则用 GPU shader 版本替换 StarBackground ─────────────────────
+# home_screen.py / dialogs.py 都从这里导入 StarBackground；
+# 在这里替换即可，无需改动其他位置。
 
 try:
     from ui.shader_background import ShaderBackground as StarBackground  # noqa: F811

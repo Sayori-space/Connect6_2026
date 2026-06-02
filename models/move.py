@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Move:
-    """Immutable record of a single stone placement."""
+    """单次落子的不可变记录。"""
     row: int
     col: int
-    color: int  # BLACK or WHITE (see utils.constants)
+    color: int  # BLACK 或 WHITE，见 utils.constants

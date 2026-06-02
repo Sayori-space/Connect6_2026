@@ -1,15 +1,15 @@
 """
-sound_manager.py – global audio singleton.
+sound_manager.py：全局音频单例。
 
-Usage:
+用法：
     from ui.sound_manager import SoundManager
     SoundManager.instance().play_stone()
     SoundManager.instance().play_hover()
     SoundManager.instance().play_click()
-    SoundManager.instance().toggle_mute()  # returns new muted state (bool)
-    SoundManager.instance().is_muted()     # returns bool
+    SoundManager.instance().toggle_mute()  # 返回新的静音状态（bool）
+    SoundManager.instance().is_muted()     # 返回 bool
 
-Gracefully degrades to no-ops if PyQt5.QtMultimedia is unavailable.
+如果 PyQt5.QtMultimedia 不可用，则平滑降级为空操作。
 """
 
 import os
@@ -28,7 +28,7 @@ try:
     from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 
     class SoundManager:
-        """Lazy singleton that owns one QMediaPlayer per sound effect."""
+        """懒加载单例，每个音效持有一个 QMediaPlayer。"""
 
         _instance: "SoundManager | None" = None
 
@@ -77,7 +77,7 @@ except ImportError as _e:
     print(f"[sound_manager] QtMultimedia unavailable ({_e}), audio disabled")
 
     class SoundManager:  # type: ignore[no-redef]
-        """No-op fallback when QtMultimedia is missing."""
+        """QtMultimedia 缺失时使用的空操作兜底实现。"""
 
         _instance: "SoundManager | None" = None
 

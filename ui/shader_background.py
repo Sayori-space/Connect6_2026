@@ -1,9 +1,9 @@
 """
-ShaderBackground – animated star/nebula background using OpenGL 3.3.
+ShaderBackground：使用 OpenGL 3.3 的动态星空/星云背景。
 
-Translates shader/stars.gdshader (Godot 4 canvas_item shader) to GLSL 3.30.
-Requires: PyOpenGL  (pip install PyOpenGL)
-Falls back to plain dark background if PyOpenGL is unavailable.
+将 shader/stars.gdshader（Godot 4 canvas_item shader）翻译为 GLSL 3.30。
+依赖：PyOpenGL（pip install PyOpenGL）。
+如果 PyOpenGL 不可用，则回退到普通深色背景。
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ except ImportError:
     )
 
 
-# ── GLSL sources ────────────────────────────────────────────────────────
+# ── GLSL 源码 ─────────────────────────────────────────────────────────
 
 _VERT = """\
 #version 330 core
@@ -150,12 +150,12 @@ void main() {
 """
 
 
-# ── Widget ───────────────────────────────────────────────────────────────
+# ── 控件 ─────────────────────────────────────────────────────────────
 
 class ShaderBackground(QOpenGLWidget):
     """
-    Animated star/nebula background via OpenGL 3.3 + PyOpenGL.
-    Drop-in replacement for the static StarBackground.
+    通过 OpenGL 3.3 + PyOpenGL 实现的动态星空/星云背景。
+    可直接替换静态 StarBackground。
     """
 
     def __init__(self, count: int = 180, parent: Optional[QWidget] = None):
@@ -180,7 +180,7 @@ class ShaderBackground(QOpenGLWidget):
         self._timer.timeout.connect(self.update)
         self._timer.start()
 
-    # ── OpenGL lifecycle ────────────────────────────────────────────────
+    # ── OpenGL 生命周期 ───────────────────────────────────────────────
 
     def initializeGL(self) -> None:
         if not _HAS_GL:

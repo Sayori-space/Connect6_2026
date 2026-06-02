@@ -27,13 +27,13 @@ class ChessManualFilenameTests(unittest.TestCase):
                 BLACK,
             )
 
-        self.assertEqual(filename, "C6-参赛队A vs参赛队B-先手胜 (1).txt")
+        self.assertEqual(filename, "参赛队A vs参赛队B-先手胜 (1).txt")
 
     def test_increments_suffix_when_filename_exists(self):
         TEMP_ROOT.mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=TEMP_ROOT) as tmp:
             manual_dir = Path(tmp)
-            existing = manual_dir / "C6-参赛队A vs参赛队B-后手胜 (1).txt"
+            existing = manual_dir / "参赛队A vs参赛队B-后手胜 (1).txt"
             existing.write_text("old", encoding="utf-8")
 
             filename = build_chess_manual_filename(
@@ -43,7 +43,7 @@ class ChessManualFilenameTests(unittest.TestCase):
                 WHITE,
             )
 
-        self.assertEqual(filename, "C6-参赛队A vs参赛队B-后手胜 (2).txt")
+        self.assertEqual(filename, "参赛队A vs参赛队B-后手胜 (2).txt")
 
     def test_builds_competition_record_body(self):
         moves = [

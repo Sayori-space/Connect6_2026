@@ -60,8 +60,9 @@ class AlphaBeltaPlusAI(AlphaBetaAI):
         cands: List[Tuple[int, int]],
         color: int,
         count: int,
+        deadline: Optional[float] = None,
     ) -> Optional[List[Tuple[int, int]]]:
-        single = super()._find_wins(cands, color, count)
+        single = super()._find_wins(cands, color, count, deadline=deadline)
         if single and len(single) >= count:
             return single[:count]
         if count < 2:
@@ -83,6 +84,7 @@ class AlphaBeltaPlusAI(AlphaBetaAI):
         ranked: List[Tuple[int, int]],
         color: int,
         ci: int,
+        deadline: Optional[float] = None,
     ) -> Optional[Tuple[Tuple[int, int], Tuple[int, int]]]:
         for i, (r1, c1) in enumerate(ranked):
             if self._fg[r1 * self._N + c1] != EMPTY:
@@ -108,6 +110,7 @@ class AlphaBeltaPlusAI(AlphaBetaAI):
         color: int,
         ci: int,
         limit: int = 4,
+        deadline: Optional[float] = None,
     ) -> int:
         wins = 0
         seen = set()
@@ -130,8 +133,9 @@ class AlphaBeltaPlusAI(AlphaBetaAI):
         cands: List[Tuple[int, int]],
         color: int,
         count: int,
+        deadline: Optional[float] = None,
     ) -> Optional[List[Tuple[int, int]]]:
-        single = super()._find_blocks(cands, color, count)
+        single = super()._find_blocks(cands, color, count, deadline=deadline)
         if single:
             return single[:count]
         if count < 2:
@@ -220,6 +224,7 @@ class AlphaBeltaPlusAI(AlphaBetaAI):
         ranked: List[Tuple[int, int]],
         color: int,
         ci: int,
+        deadline: Optional[float] = None,
     ) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
         threats: List[Tuple[Tuple[int, int], Tuple[int, int]]] = []
         for i, (r1, c1) in enumerate(ranked):

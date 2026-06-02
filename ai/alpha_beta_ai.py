@@ -296,6 +296,7 @@ class AlphaBetaAI(BaseAI):
         cands: List[Tuple[int, int]],
         color: int,
         count: int,
+        deadline: Optional[float] = None,
     ) -> Optional[List[Tuple[int, int]]]:
         """Return a list of cells that win immediately, or None."""
         ci   = 0 if color == BLACK else 1
@@ -328,6 +329,7 @@ class AlphaBetaAI(BaseAI):
         cands: List[Tuple[int, int]],
         color: int,
         count: int,
+        deadline: Optional[float] = None,
     ) -> Optional[List[Tuple[int, int]]]:
         """Return moves that block an opponent immediate win, or None."""
         opp   = _opp(color)

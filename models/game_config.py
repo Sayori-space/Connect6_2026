@@ -10,5 +10,5 @@ class GameConfig:
     white_type: PlayerType = PlayerType.HUMAN
     black_name: str = "黑方"
     white_name: str = "白方"
-    ai_type: str = "alpha_beta"  # "alpha_beta", "alpha_belta_plus", or "alpha_belta_max"
-    ai_think_time_seconds: float = 8
+    ai_type: str = "alpha_beta"  # "alpha_beta"、"alpha_belta_plus" 或 "alpha_belta_max"
+    ai_think_time_seconds: float = 15 * 60

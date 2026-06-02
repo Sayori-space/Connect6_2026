@@ -1,26 +1,25 @@
 """
-Pixel mono theme – black/white only.
-All button styling is handled by PixelButton; this file only
-defines colour constants used across board and info widgets.
+像素单色主题：仅使用黑白主色。
+所有按钮样式都由 PixelButton 处理；本文件只定义棋盘和信息控件使用的颜色常量。
 """
 
-# ── Global palette ──────────────────────────────────────────────────────
-BG         = "#000000"   # pure black – app background
-FG         = "#FFFFFF"   # pure white – text / borders
-DIM        = "#888888"   # secondary / dim text
+# ── 全局调色板 ───────────────────────────────────────────────────────
+BG         = "#000000"   # 纯黑：应用背景
+FG         = "#FFFFFF"   # 纯白：文本 / 边框
+DIM        = "#888888"   # 次级 / 弱化文本
 
-# ── Board ───────────────────────────────────────────────────────────────
-BOARD_BG   = "#2A2A2A"   # dark-gray playing area
-BOARD_LINE = "#FFFFFF"   # grid lines
-STAR_POINT = "#606060"   # subtle star-point dots
+# ── 棋盘 ─────────────────────────────────────────────────────────────
+BOARD_BG   = "#2A2A2A"   # 深灰色棋盘区域
+BOARD_LINE = "#FFFFFF"   # 网格线
+STAR_POINT = "#606060"   # 低调星位圆点
 
-# ── Stones ──────────────────────────────────────────────────────────────
+# ── 棋子 ─────────────────────────────────────────────────────────────
 BLACK_STONE_TOP       = "#303030"
-BLACK_STONE_HIGHLIGHT = "#787878"   # brighter so stone reads on dark board
+BLACK_STONE_HIGHLIGHT = "#787878"   # 更亮，保证黑子在深色棋盘上清晰
 
 WHITE_STONE_TOP       = "#F2F2F2"
 WHITE_STONE_HIGHLIGHT = "#FFFFFF"
 WHITE_STONE_SHADOW    = "#C0C0C0"
 
-# ── Win highlight ───────────────────────────────────────────────────────
-WIN_GLOW   = "#FFE040"   # golden yellow – visible on both stone colours
+# ── 获胜高光 ─────────────────────────────────────────────────────────
+WIN_GLOW   = "#FFE040"   # 金黄色：黑白棋子上都清晰可见

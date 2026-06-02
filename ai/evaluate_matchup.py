@@ -100,7 +100,7 @@ OPENING_SUITE: List[NamedOpening] = [
 
 
 class MeasuredAlphaBetaAI(AlphaBetaAI):
-    """Evaluation-only AlphaBetaAI with lightweight search counters."""
+    """用于评估的 AlphaBetaAI，带轻量搜索计数器。"""
 
     def _begin_search_stats(self) -> None:
         self.last_search_stats = {
@@ -131,7 +131,7 @@ class MeasuredAlphaBetaAI(AlphaBetaAI):
 
 
 class MeasuredAlphaBeltaPlusAI(AlphaBeltaPlusAI):
-    """Evaluation-only AlphaBeltaPlusAI with the same counters."""
+    """用于评估的 AlphaBeltaPlusAI，带同样的计数器。"""
 
     def _begin_search_stats(self) -> None:
         self.last_search_stats = {
@@ -162,19 +162,22 @@ class MeasuredAlphaBeltaPlusAI(AlphaBeltaPlusAI):
 
     def _add_tactical_pair_count(self, ranked) -> None:
         n = len(ranked)
-        self.last_search_stats["tactical_pairs"] += max(0, n * (n - 1) // 2)
+        self.last_search_stats["tactical_pairs"] = (
+            self.last_search_stats.get("tactical_pairs", 0)
+            + max(0, n * (n - 1) // 2)
+        )
 
-    def _find_pair_win(self, ranked, color, ci):
+    def _find_pair_win(self, ranked, color, ci, deadline=None):
         self._add_tactical_pair_count(ranked)
-        return super()._find_pair_win(ranked, color, ci)
+        return super()._find_pair_win(ranked, color, ci, deadline=deadline)
 
-    def _find_pair_threats(self, ranked, color, ci):
+    def _find_pair_threats(self, ranked, color, ci, deadline=None):
         self._add_tactical_pair_count(ranked)
-        return super()._find_pair_threats(ranked, color, ci)
+        return super()._find_pair_threats(ranked, color, ci, deadline=deadline)
 
 
 class MeasuredAlphaBeltaMaxAI(AlphaBeltaMaxAI, MeasuredAlphaBeltaPlusAI):
-    """Evaluation-only AlphaBeltaMaxAI with the same counters."""
+    """用于评估的 AlphaBeltaMaxAI，带同样的计数器。"""
 
     def get_moves(self, board, color, count):
         self._begin_search_stats()

@@ -1,7 +1,7 @@
 """
-HomeScreen – main menu.  Matches reference: star field on black,
-large pixel-font title, four centred PixelButton items.
-Buttons and title scale responsively with window size.
+HomeScreen：主菜单。
+与参考图一致：黑底星空、大号像素字体标题、居中的 PixelButton 按钮项。
+按钮和标题会随窗口尺寸响应式缩放。
 """
 
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -34,20 +34,20 @@ class HomeScreen(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Top padding ───────────────────────────────────────────────
+        # ── 顶部留白 ─────────────────────────────────────────────────
         root.addStretch(3)
 
-        # ── Title ─────────────────────────────────────────────────────
+        # ── 标题 ─────────────────────────────────────────────────────
         self._title = QLabel("六子棋")
         self._title.setFont(pixel_font(36))
         self._title.setStyleSheet(f"color: {theme.FG}; background: transparent;")
         self._title.setAlignment(Qt.AlignCenter)
         root.addWidget(self._title)
 
-        # ── Gap between title and buttons (proportional) ──────────────
+        # ── 标题与按钮之间的比例间距 ─────────────────────────────────
         root.addStretch(2)
 
-        # ── Buttons with proportional gaps between them ───────────────
+        # ── 按钮及其比例间距 ────────────────────────────────────────
         btn_defs = [
             ("本地双人对战", self.local_game_clicked),
             ("人机对战",     self.ai_game_clicked),
@@ -61,11 +61,11 @@ class HomeScreen(QWidget):
             btn.setFixedWidth(320)
             btn.clicked.connect(signal)
             root.addWidget(btn, 0, Qt.AlignCenter)
-            # Gap after each button (including after the last)
+            # 每个按钮后的间距（包括最后一个按钮之后）
             root.addStretch(1)
             self._buttons.append(btn)
 
-        # Mute toggle button
+        # 静音切换按钮
         self._mute_home_btn = PixelButton("音效: 开", font_size=16, silent=True)
         self._mute_home_btn.setMinimumHeight(58)
         self._mute_home_btn.setFixedWidth(320)
@@ -74,7 +74,7 @@ class HomeScreen(QWidget):
         root.addStretch(1)
         self._buttons.append(self._mute_home_btn)
 
-        # Quit button
+        # 退出按钮
         quit_btn = PixelButton("退出游戏", font_size=16)
         quit_btn.setMinimumHeight(58)
         quit_btn.setFixedWidth(320)
@@ -83,7 +83,7 @@ class HomeScreen(QWidget):
         root.addStretch(1)
         self._buttons.append(quit_btn)
 
-        # ── Bottom padding ────────────────────────────────────────────
+        # ── 底部留白 ─────────────────────────────────────────────────
         root.addStretch(2)
 
     def _on_mute_clicked(self) -> None:

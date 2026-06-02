@@ -1,8 +1,8 @@
 """
-RandomAI – placeholder AI that places stones at random.
+RandomAI：随机落子的占位 AI。
 
-Useful for smoke-testing the game loop and UI before a real engine is added.
-Replace this class (or add a new BaseAI subclass) to implement smarter play.
+在真正引擎接入前，可用于对游戏循环和 UI 做冒烟测试。
+替换此类（或新增 BaseAI 子类）即可实现更智能的走法。
 """
 
 import random
@@ -14,7 +14,7 @@ from models.move import Move
 
 
 class RandomAI(BaseAI):
-    """Picks empty intersections uniformly at random."""
+    """在空交叉点中均匀随机选择落子。"""
 
     def get_moves(self, board: Board, color: int, count: int) -> List[Move]:
         empty = board.get_all_empty()

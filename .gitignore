@@ -1,4 +1,8 @@
-# Python caches and local test output
+# ── 操作系统 ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Python 缓存 ───────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,25 +10,43 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Virtual environments and local IDE state
+# ── IDE / 工具本地状态 ────────────────────────────────
 .venv/
 venv/
 env/
 .vscode/
 .idea/
 .claude/
+.omc/
 
-# Local backups and generated artifacts
-back_up/
-*.log
+# ── Cython 编译产物（队友需自行编译）───────────────────
+build/
+ai/_cython_core.c
+ai/_cython_core.*.pyd
+ai/kata_src/
 
-# Large training outputs and model checkpoints
+# ── KataGo 运行时产物 ─────────────────────────────────
+analysis_logs/
 ai/models/
 ai/models_fresh_20260420/
 *.pth
 *.pkl
 
-# Deep-learning training sources and notes kept local
+# ── 本地调试 / 分析产物 ───────────────────────────────
+*.log
+*.json
+!ai/models/**/*.json
+scripts/test_engine*.py
+scripts/diagnose_eval.py
+scripts/debug_kata_query.py
+
+# ── 本地数据 ──────────────────────────────────────────
+back_up/
+chess_manual/
+C6-*.txt
+stdout
+
+# ── 训练/实验代码（不上传）────────────────────────────
 ai/TRAINING.md
 ai/alphago_zero_ai.py
 ai/mcts.py
@@ -40,12 +62,3 @@ tests/test_mcts_tactics.py
 tests/test_training_loop_bootstrap.py
 thesis/
 
-# Local generated game records and command output
-chess_manual/
-C6-*.txt
-stdout
-CLAUDE.md
-
-# OS metadata
-.DS_Store
-Thumbs.db

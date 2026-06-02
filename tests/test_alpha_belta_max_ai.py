@@ -1,6 +1,7 @@
 import unittest
 
 from ai.alpha_belta_max_ai import AlphaBeltaMaxAI
+from ai.alpha_beta_ai import _WIN
 from ai.alpha_belta_plus_ai import AlphaBeltaPlusAI
 from game.board import Board
 from models.move import Move
@@ -39,6 +40,27 @@ class AlphaBeltaMaxAITests(unittest.TestCase):
         scattered_bonus = self._max_extra_score(scattered, 9, 9)
 
         self.assertGreater(continuous_bonus, scattered_bonus)
+
+    def test_adds_defensive_shape_value_for_blocking_opponent_run(self):
+        board = Board(19)
+        for col in (6, 7, 8):
+            self.assertTrue(board.place(Move(9, col, WHITE)))
+
+        plus = AlphaBeltaPlusAI()
+        max_ai = AlphaBeltaMaxAI()
+        plus._init_from_board(board)
+        max_ai._init_from_board(board)
+
+        self.assertGreater(max_ai._cell_val(9, 9, 0), plus._cell_val(9, 9, 0))
+
+    def test_jump_connection_bonus_rewards_filling_single_gap(self):
+        board = Board(19)
+        for col in (5, 6, 8, 9):
+            self.assertTrue(board.place(Move(9, col, BLACK)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+
+        self.assertGreater(ai._jump_connection_bonus(9, 7, 0), 0)
 
     def test_remembered_pair_is_ordered_first(self):
         ai = AlphaBeltaMaxAI()
@@ -136,6 +158,76 @@ class AlphaBeltaMaxAITests(unittest.TestCase):
         self.assertGreater(black_score, 0)
         self.assertLess(white_score, 0)
 
+    def test_transposition_key_includes_search_mode_and_stone_count(self):
+        ai = AlphaBeltaMaxAI()
+
+        main_key = ai._tt_key(BLACK, mode="main", count=2)
+        q_key = ai._tt_key(BLACK, mode="quiescence", count=2)
+        one_stone_key = ai._tt_key(BLACK, mode="main", count=1)
+
+        self.assertNotEqual(main_key, q_key)
+        self.assertNotEqual(main_key, one_stone_key)
+
+    def test_transposition_store_keeps_deeper_entry(self):
+        ai = AlphaBeltaMaxAI()
+        key = ai._tt_key(BLACK, mode="main", count=2)
+
+        ai._store_tt(key, depth=4, score=100, flag=0, best_pair=None)
+        ai._store_tt(key, depth=2, score=999, flag=0, best_pair=None)
+
+        self.assertEqual(ai._tt[key][0], 4)
+        self.assertEqual(ai._tt[key][1], 100)
+
+    def test_transposition_store_prefers_exact_at_same_depth(self):
+        ai = AlphaBeltaMaxAI()
+        key = ai._tt_key(BLACK, mode="main", count=2)
+
+        ai._store_tt(key, depth=3, score=100, flag=1, best_pair=None)
+        ai._store_tt(key, depth=3, score=200, flag=0, best_pair=None)
+
+        self.assertEqual(ai._tt[key][1], 200)
+        self.assertEqual(ai._tt[key][2], 0)
+
+    def test_depth_zero_extends_immediate_winning_threat(self):
+        board = Board(19)
+        for col in range(4):
+            self.assertTrue(board.place(Move(10, col, BLACK)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+
+        score = ai._negamax(BLACK, 0, -20_000_000, 20_000_000, 999999.0)
+
+        self.assertGreaterEqual(score, _WIN)
+
+    def test_depth_zero_quiescence_respects_expired_deadline(self):
+        board = Board(19)
+        for col in range(4):
+            self.assertTrue(board.place(Move(10, col, BLACK)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+
+        score = ai._negamax(BLACK, 0, -20_000_000, 20_000_000, 0.0)
+
+        self.assertLess(score, _WIN)
+
+    def test_depth_zero_extends_required_defensive_threat(self):
+        board = Board(19)
+        for row, col, color in [
+            (0, 0, WHITE),
+            (1, 0, WHITE),
+            (2, 0, WHITE),
+            (3, 0, WHITE),
+            (4, 0, WHITE),
+        ]:
+            self.assertTrue(board.place(Move(row, col, color)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+        static_score = ai._eval(0)
+
+        score = ai._negamax(BLACK, 0, -20_000_000, 20_000_000, 999999.0)
+
+        self.assertGreater(score, static_score)
+
     def test_root_hint_pair_is_ordered_first(self):
         ai = AlphaBeltaMaxAI()
         pairs = [
@@ -148,13 +240,46 @@ class AlphaBeltaMaxAITests(unittest.TestCase):
 
         self.assertEqual(ordered[0], pairs[1])
 
+    def test_root_pair_ordering_prioritizes_immediate_win_over_root_hint(self):
+        board = Board(19)
+        for col in range(4):
+            self.assertTrue(board.place(Move(10, col, BLACK)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+        hinted = ((11, 11), (11, 12))
+        winning = ((10, 4), (10, 5))
+        ai._root_hint_pair = hinted
+
+        ordered = ai._order_root_pairs([hinted, winning], depth=2, color=BLACK, ci=0)
+
+        self.assertEqual(ordered[0], winning)
+
+    def test_pair_ordering_prioritizes_required_block_over_history(self):
+        board = Board(19)
+        for row in range(5):
+            self.assertTrue(board.place(Move(row, 0, WHITE)))
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+        remembered = ((10, 10), (10, 11))
+        blocking = ((5, 0), (6, 6))
+        ai._remember_pair(remembered, depth=4)
+
+        ordered = ai._order_pairs_for_depth(
+            [remembered, blocking],
+            depth=2,
+            color=BLACK,
+            ci=0,
+        )
+
+        self.assertEqual(ordered[0], blocking)
+
     def test_root_bounds_use_previous_score_as_aspiration_center(self):
         ai = AlphaBeltaMaxAI()
         ai._last_root_score = 12345
 
         alpha, beta, used_aspiration = ai._root_bounds()
 
-        self.assertEqual((alpha, beta), (12345 - 250000, 12345 + 250000))
+        self.assertEqual((alpha, beta), (12345 - 250_000, 12345 + 250_000))
         self.assertTrue(used_aspiration)
 
     def test_root_bounds_use_full_window_without_previous_score(self):
@@ -202,6 +327,20 @@ class AlphaBeltaMaxAITests(unittest.TestCase):
         moves = AlphaBeltaMaxAI().get_moves(board, BLACK, 2)
 
         self.assertIn((9, 9), {(move.row, move.col) for move in moves})
+
+    def test_multi_threat_attack_respects_expired_deadline(self):
+        board = self._cross_four_board()
+        ai = AlphaBeltaMaxAI()
+        ai._init_from_board(board)
+
+        pair = ai._find_multi_threat_attack(
+            ai._candidates(),
+            BLACK,
+            2,
+            deadline=0.0,
+        )
+
+        self.assertIsNone(pair)
 
     def test_finds_blocks_against_opponent_multi_threat_attack(self):
         board = self._white_cross_four_board()
@@ -258,6 +397,44 @@ class AlphaBeltaMaxAITests(unittest.TestCase):
             ai.last_decision["moves"],
             [(move.row, move.col) for move in moves],
         )
+
+    def test_records_search_stats_for_public_move_search(self):
+        board = Board(19)
+        self.assertTrue(board.place(Move(9, 9, BLACK)))
+        self.assertTrue(board.place(Move(10, 10, WHITE)))
+        ai = AlphaBeltaMaxAI()
+        ai.think_time_seconds = 0.01
+
+        ai.get_moves(board, BLACK, 2)
+
+        self.assertIn("nodes", ai.last_search_stats)
+        self.assertIn("completed_depth", ai.last_search_stats)
+        self.assertGreaterEqual(ai.last_search_stats["nodes"], 0)
+        self.assertGreaterEqual(ai.last_search_stats["completed_depth"], 0)
+
+    def test_estimate_urgency_is_baseline_for_empty_board(self):
+        urgency = AlphaBeltaMaxAI().estimate_urgency(Board(19), BLACK, 1)
+
+        self.assertEqual(urgency, 1.0)
+
+    def test_estimate_urgency_detects_required_immediate_block(self):
+        board = Board(19)
+        self.assertTrue(board.place(Move(9, 4, BLACK)))
+        for col in (5, 6, 7, 8):
+            self.assertTrue(board.place(Move(9, col, WHITE)))
+
+        urgency = AlphaBeltaMaxAI().estimate_urgency(board, BLACK, 2)
+
+        self.assertGreaterEqual(urgency, 3.0)
+
+    def test_estimate_urgency_detects_multi_threat_attack(self):
+        urgency = AlphaBeltaMaxAI().estimate_urgency(
+            self._cross_four_board(),
+            BLACK,
+            2,
+        )
+
+        self.assertGreaterEqual(urgency, 2.5)
 
     def test_immediate_winning_cells_after_pair_returns_forced_replies(self):
         board = Board(19)

@@ -1,9 +1,9 @@
 """
-ControlPanel – right-hand info panel.
+ControlPanel：右侧信息面板。
 
-Matches the reference screenshots: pure black background, pixel font
-text labels showing player names / current turn / stones remaining,
-then PixelButton action buttons.  All fonts scale with panel width.
+风格与参考截图一致：纯黑背景、像素字体文本标签显示玩家名、
+当前回合和剩余棋子数，下面是 PixelButton 操作按钮。
+所有字体都会随面板宽度缩放。
 """
 
 from typing import Optional
@@ -18,13 +18,19 @@ from ui.sound_manager import SoundManager
 from utils.constants import BLACK, WHITE
 
 
-# ── Info label widget ──────────────────────────────────────────────────
+def _format_turn_seconds(seconds: int) -> str:
+    seconds = max(0, int(seconds))
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+# ── 信息标签控件 ───────────────────────────────────────────────────────
 
 from PyQt5.QtWidgets import QLabel
 
 
 class _InfoLabel(QLabel):
-    """Single-line info label; font scales with panel width."""
+    """单行信息标签；字体随面板宽度缩放。"""
 
     def __init__(self, text: str = "", parent=None):
         super().__init__(text, parent)
@@ -39,7 +45,7 @@ class _DimLabel(QLabel):
         self.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
 
-# ── Main panel ─────────────────────────────────────────────────────────
+# ── 主面板 ─────────────────────────────────────────────────────────────
 
 class ControlPanel(QWidget):
     confirm_requested    = pyqtSignal()
@@ -50,7 +56,7 @@ class ControlPanel(QWidget):
 
     _MIN_W = 180
     _MAX_W = 480
-    _REF_W = 220   # reference width for font calculation
+    _REF_W = 220   # 字体计算参考宽度
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -62,21 +68,23 @@ class ControlPanel(QWidget):
         root.setContentsMargins(20, 24, 20, 20)
         root.setSpacing(0)
 
-        # ── Info labels ───────────────────────────────────────────────
+        # ── 信息标签 ─────────────────────────────────────────────────
         self._black_lbl  = _InfoLabel("黑方：—")
         self._white_lbl  = _InfoLabel("白方：—")
         self._cur_lbl    = _InfoLabel("当前：—")
         self._remain_lbl = _InfoLabel("剩余：—")
+        self._timer_lbl  = _InfoLabel("思考：00:00")
         self._ai_lbl     = _DimLabel("")
 
         for lbl in (self._black_lbl, self._white_lbl,
-                    self._cur_lbl, self._remain_lbl, self._ai_lbl):
+                    self._cur_lbl, self._remain_lbl,
+                    self._timer_lbl, self._ai_lbl):
             root.addWidget(lbl)
             root.addSpacing(4)
 
         root.addStretch(1)
 
-        # ── Buttons ───────────────────────────────────────────────────
+        # ── 按钮 ─────────────────────────────────────────────────────
         self._confirm_btn    = PixelButton("确认落子")
         self._undo_stone_btn = PixelButton("撤回一步")
         self._undo_turn_btn  = PixelButton("悔棋")
@@ -102,7 +110,7 @@ class ControlPanel(QWidget):
 
         self._apply_scale(self._REF_W)
 
-    # ── Responsive scaling ─────────────────────────────────────────────
+    # ── 响应式缩放 ───────────────────────────────────────────────────
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -117,7 +125,8 @@ class ControlPanel(QWidget):
 
         fnt = pixel_font(lbl_sz)
         for lbl in (self._black_lbl, self._white_lbl,
-                    self._cur_lbl, self._remain_lbl, self._ai_lbl):
+                    self._cur_lbl, self._remain_lbl,
+                    self._timer_lbl, self._ai_lbl):
             lbl.setFont(fnt)
             lbl.setMinimumHeight(max(22, round(26 * scale)))
 
@@ -127,7 +136,7 @@ class ControlPanel(QWidget):
             btn.setFont(pixel_font(btn_sz))
             btn.setMinimumHeight(btn_h)
 
-        # Update spacing in layout
+        # 更新布局间距
         lay = self.layout()
         if lay:
             lay.setContentsMargins(
@@ -137,7 +146,7 @@ class ControlPanel(QWidget):
                 max(12, round(20 * scale)),
             )
 
-    # ── State API ──────────────────────────────────────────────────────
+    # ── 状态 API ─────────────────────────────────────────────────────
 
     def set_player_names(self, black_name: str, white_name: str) -> None:
         self._black_lbl.setText(f"黑方：{black_name}")
@@ -155,11 +164,17 @@ class ControlPanel(QWidget):
         remaining = needed - placed
         self._remain_lbl.setText(f"剩余：{remaining}")
 
+    def update_turn_timer(self, seconds: int) -> None:
+        self._timer_lbl.setText(f"思考：{_format_turn_seconds(seconds)}")
+
+    def update_ai_time_remaining(self, seconds: float) -> None:
+        self._timer_lbl.setText(f"AI剩余：{_format_turn_seconds(round(seconds))}")
+
     def show_confirm_button(self, visible: bool) -> None:
         self._confirm_btn.setVisible(visible)
 
     def set_ai_info(self, ai_name: str) -> None:
-        """Display current AI name."""
+        """显示当前 AI 名称。"""
         self._ai_lbl.setText(f"AI：{ai_name}" if ai_name else "")
 
     def update_game_over(self, winner_color: Optional[int],
@@ -177,6 +192,7 @@ class ControlPanel(QWidget):
         self._confirm_btn.setVisible(False)
         self._cur_lbl.setText("当前：—")
         self._remain_lbl.setText("剩余：—")
+        self.update_turn_timer(0)
 
     def _on_mute_clicked(self) -> None:
         muted = SoundManager.instance().toggle_mute()

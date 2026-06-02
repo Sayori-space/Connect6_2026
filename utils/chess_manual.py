@@ -24,10 +24,10 @@ def build_chess_manual_filename(
     white_name: str,
     winner: Optional[int],
 ) -> str:
-    """Build a competition-style chess manual filename with a unique suffix."""
+    """生成带唯一后缀的比赛风格棋谱文件名。"""
     black = _sanitize_filename_part(black_name)
     white = _sanitize_filename_part(white_name)
-    base_name = f"C6-{black} vs{white}-{_result_label(winner)}"
+    base_name = f"{black} vs{white}-{_result_label(winner)}"
     directory = Path(manual_dir)
 
     index = 1
@@ -58,7 +58,7 @@ def build_chess_manual_record(
     winner: Optional[int],
     recorded_at: Optional[datetime] = None,
 ) -> str:
-    """Build the compact C6 competition record body."""
+    """生成紧凑的 C6 比赛棋谱正文。"""
     timestamp = (recorded_at or datetime.now()).strftime("%Y-%m-%d %H:%M ")
     header = f"{{[C6][][][{_result_label(winner)}][{timestamp}][]"
     tokens = [_move_to_record_token(move) for move in moves]

@@ -1,8 +1,7 @@
 """
-AIConfigPage – full-screen AI game setup page.
+AIConfigPage：全屏 AI 对局设置页。
 
-Replaces the AIConfigDialog popup so the config lives in the
-AppWindow QStackedWidget as a proper page.
+替代 AIConfigDialog 弹窗，让配置界面作为正式页面放入 AppWindow 的 QStackedWidget。
 """
 
 from typing import List, Optional
@@ -15,6 +14,7 @@ from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import (
     QGraphicsOpacityEffect,
     QHBoxLayout, QPushButton, QVBoxLayout, QWidget, QLabel,
+    QLineEdit,
 )
 
 import ui.theme as theme
@@ -23,8 +23,13 @@ from models.player import PlayerType
 from ui.pixel_widgets import PixelButton, StarBackground, pixel_font
 
 
-AI_OPTIONS = ("剪枝AI", "alpha-belta-plus", "alpha-belta-max")
-THINK_TIME_OPTIONS = (("0.5s", 0.5), ("1.0s", 1.0), ("2.5s", 2.5), ("5.0s", 5.0))
+AI_OPTIONS = ("剪枝AI", "alpha-belta-plus", "alpha-belta-max", "AB-Kata", "KataGomo")
+THINK_TIME_OPTIONS = (
+    ("15:00", 15 * 60),
+    ("10:00", 10 * 60),
+    ("5:00", 5 * 60),
+    ("1:00", 60),
+)
 
 
 def _ai_type_from_label(label: str) -> str:
@@ -34,6 +39,10 @@ def _ai_type_from_label(label: str) -> str:
         return "alpha_belta_plus"
     if label == "alpha-belta-max":
         return "alpha_belta_max"
+    if label == "AB-Kata":
+        return "ab_kata"
+    if label == "KataGomo":
+        return "kata_gomo"
     raise ValueError(f"unsupported AI label: {label}")
 
 
@@ -44,50 +53,60 @@ def _think_time_seconds_from_label(label: str) -> float:
     raise ValueError(f"unsupported think time label: {label}")
 
 
+def _player_name_or_default(name: str, default: str) -> str:
+    name = name.strip()
+    return name or default
+
+
 def _build_ai_game_config(
     selected_color: int,
     ai_label: str,
     think_time_label: str,
+    black_name: str = "",
+    white_name: str = "",
 ) -> GameConfig:
     ai_type = _ai_type_from_label(ai_label)
     think_time_seconds = _think_time_seconds_from_label(think_time_label)
     if selected_color == 1:
+        default_black_name = "玩家"
+        default_white_name = "AI"
         return GameConfig(
             black_type=PlayerType.HUMAN,
             white_type=PlayerType.AI,
-            black_name="玩家",
-            white_name="AI",
+            black_name=_player_name_or_default(black_name, default_black_name),
+            white_name=_player_name_or_default(white_name, default_white_name),
             ai_type=ai_type,
             ai_think_time_seconds=think_time_seconds,
         )
+    default_black_name = "AI"
+    default_white_name = "玩家"
     return GameConfig(
         black_type=PlayerType.AI,
         white_type=PlayerType.HUMAN,
-        black_name="AI",
-        white_name="玩家",
+        black_name=_player_name_or_default(black_name, default_black_name),
+        white_name=_player_name_or_default(white_name, default_white_name),
         ai_type=ai_type,
         ai_think_time_seconds=think_time_seconds,
     )
 
 
-# ── Stone-selector button ───────────────────────────────────────────────
+# ── 棋子选择按钮 ─────────────────────────────────────────────────────
 
 class _StoneBtn(QPushButton):
     """
-    Stone-shaped selector with elastic jelly hover-scale animation.
+    棋子形状的选择器，带弹性果冻感悬停缩放动画。
 
-    The widget is padded by _PAD on each side so the elastic overshoot
-    (scale > 1.0) never clips at the widget boundary.
+    控件四周预留 _PAD 内边距，确保弹性超出（scale > 1.0）不会被边界裁切。
     """
 
-    _PAD = 24   # extra room around the stone for animation overshoot
+    _PAD = 24   # 棋子周围为动画超出预留的额外空间
 
     def __init__(self, stone_color: int, size: int = 64, parent=None):
         super().__init__(parent)
         self._stone_color = stone_color
         self._selected    = False
         self._sz          = size
-        self._s           = 1.0      # current draw-scale (backing store)
+        self._s           = 1.0      # 当前绘制缩放值（后台存储）
 
         self.setFixedSize(size + self._PAD, size + self._PAD)
         self.setCursor(Qt.PointingHandCursor)
@@ -95,7 +114,7 @@ class _StoneBtn(QPushButton):
 
         self._anim = QPropertyAnimation(self, b"_anim_scale")
 
-    # ── pyqtProperty so QPropertyAnimation can animate _s ───────────
+    # ── pyqtProperty，让 QPropertyAnimation 可以动画化 _s ───────────
 
     def _get_s(self) -> float:
         return self._s
@@ -106,7 +125,7 @@ class _StoneBtn(QPushButton):
 
     _anim_scale = pyqtProperty(float, _get_s, _set_s)
 
-    # ── Public API ───────────────────────────────────────────────────
+    # ── 公共 API ───────────────────────────────────────────────────
 
     def set_selected(self, sel: bool) -> None:
         self._selected = sel
@@ -117,7 +136,7 @@ class _StoneBtn(QPushButton):
         self.setFixedSize(size + self._PAD, size + self._PAD)
         self.update()
 
-    # ── Hover events ─────────────────────────────────────────────────
+    # ── 悬停事件 ───────────────────────────────────────────────────
 
     def event(self, e) -> bool:
         if e.type() == QEvent.HoverEnter:
@@ -136,7 +155,7 @@ class _StoneBtn(QPushButton):
             self._anim.start()
         return super().event(e)
 
-    # ── Paint ────────────────────────────────────────────────────────
+    # ── 绘制 ───────────────────────────────────────────────────────
 
     def paintEvent(self, _e) -> None:
         p = QPainter(self)
@@ -163,15 +182,15 @@ class _StoneBtn(QPushButton):
             )
 
 
-# ── Carousel arrow button ────────────────────────────────────────────────
+# ── 轮播箭头按钮 ─────────────────────────────────────────────────────
 
 class _ArrowBtn(QPushButton):
     """
-    Minimal transparent arrow button for the difficulty carousel.
+    难度轮播使用的极简透明箭头按钮。
 
-    Normal   : transparent bg · white text
-    Hover    : white fill (animated) · black text
-    Disabled : transparent bg · dim text  (no black fill)
+    普通   ：透明背景 · 白色文本
+    悬停   ：白色填充（动画）· 黑色文本
+    禁用   ：透明背景 · 暗色文本（无黑色填充）
     """
 
     _ANIM_STEP = 0.14
@@ -232,7 +251,7 @@ class _ArrowBtn(QPushButton):
         return super().event(e)
 
 
-# ── Difficulty carousel ─────────────────────────────────────────────────
+# ── 难度轮播 ─────────────────────────────────────────────────────────
 
 class _Carousel(QWidget):
     def __init__(self, options: List[str], parent=None):
@@ -263,7 +282,7 @@ class _Carousel(QWidget):
         lay.addWidget(self._label, 1)
         lay.addWidget(self._next)
 
-        # Opacity fade animation for label text transitions
+        # 标签文本切换时的不透明度淡入淡出动画
         self._opacity_fx = QGraphicsOpacityEffect(self._label)
         self._label.setGraphicsEffect(self._opacity_fx)
 
@@ -280,7 +299,7 @@ class _Carousel(QWidget):
 
         self._refresh_buttons()
 
-    # ── Navigation ───────────────────────────────────────────────────
+    # ── 导航 ───────────────────────────────────────────────────────
 
     def _go_prev(self) -> None:
         self._pending_index = (self._index - 1) % len(self._options)
@@ -302,7 +321,7 @@ class _Carousel(QWidget):
         self._prev.setEnabled(enabled)
         self._next.setEnabled(enabled)
 
-    # ── Responsive scaling ───────────────────────────────────────────
+    # ── 响应式缩放 ─────────────────────────────────────────────────
 
     def set_scale(self, scale: float) -> None:
         self._label.setFont(pixel_font(max(10, int(13 * scale))))
@@ -318,7 +337,7 @@ class _Carousel(QWidget):
         return self._options[self._index]
 
 
-# ── Label helper ────────────────────────────────────────────────────────
+# ── 标签辅助方法 ─────────────────────────────────────────────────────
 
 def _lbl(text: str, size: int = 14, dim: bool = False) -> QLabel:
     l = QLabel(text)
@@ -329,10 +348,32 @@ def _lbl(text: str, size: int = 14, dim: bool = False) -> QLabel:
     return l
 
 
-# ── Page widget ─────────────────────────────────────────────────────────
+def _name_input(placeholder: str) -> QLineEdit:
+    edit = QLineEdit()
+    edit.setFont(pixel_font(12))
+    edit.setAlignment(Qt.AlignCenter)
+    edit.setMaxLength(24)
+    edit.setPlaceholderText(placeholder)
+    edit.setFixedWidth(260)
+    edit.setStyleSheet(
+        "QLineEdit {"
+        f"color: {theme.FG};"
+        "background: rgba(255, 255, 255, 24);"
+        f"border: 2px solid {theme.DIM};"
+        "border-radius: 4px;"
+        "padding: 8px 10px;"
+        "}"
+        "QLineEdit:focus {"
+        f"border-color: {theme.WIN_GLOW};"
+        "}"
+    )
+    return edit
+
+
+# ── 页面控件 ─────────────────────────────────────────────────────────
 
 class AIConfigPage(QWidget):
-    """Full-page AI game setup; emits signals instead of returning from exec_."""
+    """全页 AI 对局设置；通过信号输出结果，而不是从 exec_ 返回。"""
 
     game_config_ready = pyqtSignal(object)   # GameConfig
     go_back           = pyqtSignal()
@@ -342,7 +383,7 @@ class AIConfigPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._selected_color = 1   # 1=BLACK (human plays black)
+        self._selected_color = 1   # 1=BLACK（人类执黑）
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -363,7 +404,7 @@ class AIConfigPage(QWidget):
         root.addWidget(self._color_hint_lbl, 0, Qt.AlignCenter)
         root.addStretch(1)
 
-        # Stone selector row
+        # 棋子选择行
         stone_row = QHBoxLayout()
         stone_row.setSpacing(40)
         stone_row.setAlignment(Qt.AlignCenter)
@@ -390,7 +431,6 @@ class AIConfigPage(QWidget):
 
         self._black_btn.clicked.connect(lambda: self._pick(1))
         self._white_btn.clicked.connect(lambda: self._pick(2))
-        self._pick(1)
 
         self._diff_lbl = _lbl("AI 难度预设", size=13, dim=True)
         root.addWidget(self._diff_lbl, 0, Qt.AlignCenter)
@@ -406,6 +446,30 @@ class AIConfigPage(QWidget):
         root.addWidget(self._think_time_carousel, 0, Qt.AlignCenter)
 
         root.addStretch(1)
+
+        name_row = QHBoxLayout()
+        name_row.setSpacing(16)
+        name_row.setAlignment(Qt.AlignCenter)
+
+        black_name_wrap = QVBoxLayout()
+        black_name_wrap.setSpacing(6)
+        self._black_input_lbl = _lbl("先手名称", size=12, dim=True)
+        self._black_name_input = _name_input("默认：玩家")
+        black_name_wrap.addWidget(self._black_input_lbl, 0, Qt.AlignCenter)
+        black_name_wrap.addWidget(self._black_name_input, 0, Qt.AlignCenter)
+
+        white_name_wrap = QVBoxLayout()
+        white_name_wrap.setSpacing(6)
+        self._white_input_lbl = _lbl("后手名称", size=12, dim=True)
+        self._white_name_input = _name_input("默认：AI")
+        white_name_wrap.addWidget(self._white_input_lbl, 0, Qt.AlignCenter)
+        white_name_wrap.addWidget(self._white_name_input, 0, Qt.AlignCenter)
+
+        name_row.addLayout(black_name_wrap)
+        name_row.addLayout(white_name_wrap)
+        root.addLayout(name_row)
+        root.addStretch(1)
+        self._pick(1)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(20)
@@ -423,7 +487,7 @@ class AIConfigPage(QWidget):
         root.addLayout(btn_row)
         root.addStretch(2)
 
-    # ── Responsive scaling ──────────────────────────────────────────────
+    # ── 响应式缩放 ────────────────────────────────────────────────────
 
     def _apply_scale(self, w: int, h: int) -> None:
         scale = min(w / self._REF_W, h / self._REF_H)
@@ -435,6 +499,8 @@ class AIConfigPage(QWidget):
         self._white_name_lbl.setFont(pixel_font(max(9, int(12 * scale))))
         self._diff_lbl.setFont(pixel_font(max(10, int(13 * scale))))
         self._think_time_lbl.setFont(pixel_font(max(10, int(13 * scale))))
+        self._black_input_lbl.setFont(pixel_font(max(9, int(12 * scale))))
+        self._white_input_lbl.setFont(pixel_font(max(9, int(12 * scale))))
 
         stone_sz = max(72, int(96 * scale))
         self._black_btn.resize_to(stone_sz)
@@ -442,6 +508,12 @@ class AIConfigPage(QWidget):
 
         self._carousel.set_scale(scale)
         self._think_time_carousel.set_scale(scale)
+
+        input_font = max(10, int(12 * scale))
+        input_w = max(190, int(260 * scale))
+        for edit in (self._black_name_input, self._white_name_input):
+            edit.setFont(pixel_font(input_font))
+            edit.setFixedWidth(input_w)
 
         btn_font = max(11, int(14 * scale))
         btn_w    = max(150, int(200 * scale))
@@ -451,18 +523,29 @@ class AIConfigPage(QWidget):
             btn.setFixedWidth(btn_w)
             btn.setMinimumHeight(btn_h)
 
-    # ── Logic ───────────────────────────────────────────────────────────
+    # ── 逻辑 ─────────────────────────────────────────────────────────
 
     def _pick(self, color: int) -> None:
         self._selected_color = color
         self._black_btn.set_selected(color == 1)
         self._white_btn.set_selected(color == 2)
+        self._refresh_name_placeholders()
+
+    def _refresh_name_placeholders(self) -> None:
+        if self._selected_color == 1:
+            self._black_name_input.setPlaceholderText("默认：玩家")
+            self._white_name_input.setPlaceholderText("默认：AI")
+        else:
+            self._black_name_input.setPlaceholderText("默认：AI")
+            self._white_name_input.setPlaceholderText("默认：玩家")
 
     def _on_start(self) -> None:
         config = _build_ai_game_config(
             selected_color=self._selected_color,
             ai_label=self._carousel.current,
             think_time_label=self._think_time_carousel.current,
+            black_name=self._black_name_input.text(),
+            white_name=self._white_name_input.text(),
         )
         self.game_config_ready.emit(config)
 

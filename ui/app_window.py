@@ -1,13 +1,13 @@
 """
-AppWindow – the top-level QMainWindow.
+AppWindow：顶层 QMainWindow。
 
-Contains a QStackedWidget with four pages:
-  0 – HomeScreen    (main menu)
-  1 – GamePage      (the actual board game)
-  2 – RulesScreen   (rules explanation)
-  3 – AIConfigPage  (AI game setup)
+包含一个拥有四个页面的 QStackedWidget：
+  0 — HomeScreen    （主菜单）
+  1 — GamePage      （实际棋局）
+  2 — RulesScreen   （规则说明）
+  3 — AIConfigPage  （AI 对局设置）
 
-Navigation is handled here; individual pages only emit signals.
+导航统一在这里处理；各页面只负责发出信号。
 """
 
 from PyQt5.QtCore import QEasingCurve, QPropertyAnimation, Qt
@@ -26,15 +26,13 @@ from ui.rules_screen import RulesScreen
 
 
 class _FadeOverlay(QWidget):
-    """Solid-colour overlay that fades out over 250 ms then self-destructs.
+    """纯色遮罩层，250 ms 内淡出后自行销毁。
 
-    Placed on top of the *new* page immediately after setCurrentIndex so the
-    transition works regardless of whether the departing page contained an
-    OpenGL widget (no grab() needed).
+    在 setCurrentIndex 后立即放到 *新* 页面之上，因此即使离开的页面包含
+    OpenGL 控件也能完成过渡（无需 grab()）。
 
-    Parented to the QStackedWidget so it lives in stack coordinates.
-    WA_TransparentForMouseEvents ensures the new page beneath is interactive
-    during the animation.
+    父对象设为 QStackedWidget，使其使用 stack 坐标。
+    WA_TransparentForMouseEvents 保证动画期间底下的新页面仍可交互。
     """
 
     def __init__(self, parent: QWidget = None):
@@ -46,8 +44,8 @@ class _FadeOverlay(QWidget):
         self._effect.setOpacity(1.0)
         self.setGraphicsEffect(self._effect)
 
-        # Parent the animation to self so it is destroyed with the widget.
-        # This ensures clean cleanup when deleteLater fires.
+        # 将动画挂到 self 下，使其随控件一起销毁。
+        # 这样 deleteLater 触发时可以干净清理。
         self._anim = QPropertyAnimation(self._effect, b"opacity", self)
         self._anim.setDuration(250)
         self._anim.setStartValue(1.0)
@@ -56,7 +54,7 @@ class _FadeOverlay(QWidget):
         self._anim.finished.connect(self.deleteLater)
 
     def start_fade(self) -> None:
-        """Start the fade-out animation. Call after show() + raise_()."""
+        """启动淡出动画；应在 show() + raise_() 后调用。"""
         self._anim.start()
 
     def paintEvent(self, _event) -> None:
@@ -72,7 +70,7 @@ _PAGE_AI_CFG   = 3
 
 
 class AppWindow(QMainWindow):
-    """Root application window."""
+    """应用根窗口。"""
 
     def __init__(self):
         super().__init__()
@@ -81,7 +79,7 @@ class AppWindow(QMainWindow):
         self.setMinimumSize(820, 620)
         self.resize(1000, 720)
 
-        # ── Stacked pages ─────────────────────────────────────────────
+        # ── 堆叠页面 ─────────────────────────────────────────────────
         self._stack = QStackedWidget()
         self.setCentralWidget(self._stack)
 
@@ -90,12 +88,12 @@ class AppWindow(QMainWindow):
         self._rules  = RulesScreen()
         self._ai_cfg = AIConfigPage()
 
-        self._stack.addWidget(self._home)    # index 0
-        self._stack.addWidget(self._game)    # index 1
-        self._stack.addWidget(self._rules)   # index 2
-        self._stack.addWidget(self._ai_cfg)  # index 3
+        self._stack.addWidget(self._home)    # 索引 0
+        self._stack.addWidget(self._game)    # 索引 1
+        self._stack.addWidget(self._rules)   # 索引 2
+        self._stack.addWidget(self._ai_cfg)  # 索引 3
 
-        # ── Signal wiring ─────────────────────────────────────────────
+        # ── 信号连接 ─────────────────────────────────────────────────
         self._home.local_game_clicked.connect(self._start_local_game)
         self._home.ai_game_clicked.connect(self._show_ai_config)
         self._home.rules_clicked.connect(self._show_rules)
@@ -107,20 +105,19 @@ class AppWindow(QMainWindow):
         self._ai_cfg.go_back.connect(self._show_home)
         self._ai_cfg.game_config_ready.connect(self._launch_game)
 
-        # Start on the home screen
+        # 默认显示主界面
         self._stack.setCurrentIndex(_PAGE_HOME)
 
     # ------------------------------------------------------------------ #
-    # Navigation
+    # 导航
     # ------------------------------------------------------------------ #
 
     def _navigate(self, index: int) -> None:
-        """Switch to page `index` with a solid-colour fade-in transition.
+        """切换到页面 `index`，并使用纯色淡入过渡。
 
-        The new page is shown immediately; a solid overlay (matching the app
-        background) fades out on top of it, giving a smooth appearance without
-        requiring a grab() of the departing page (which would be blank for
-        pages that contain a QOpenGLWidget on Windows).
+        新页面会立即显示；与应用背景相同的纯色遮罩在其上方淡出，
+        从而形成平滑观感，且无需对离开的页面执行 grab()
+        （Windows 上含 QOpenGLWidget 的页面 grab() 会得到空白）。
         """
         if index == self._stack.currentIndex():
             return
@@ -150,5 +147,5 @@ class AppWindow(QMainWindow):
         self._launch_game(config)
 
     def _launch_game(self, config: GameConfig) -> None:
-        self._navigate(_PAGE_GAME)   # switch first so UI is responsive
+        self._navigate(_PAGE_GAME)   # 先切换页面，保证 UI 响应及时
         self._game.start_game(config)

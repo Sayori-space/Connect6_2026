@@ -1,5 +1,5 @@
 """
-Entry point for the Connect6 (六子棋) desktop client.
+六子棋桌面客户端入口。
 """
 
 import sys
@@ -12,7 +12,7 @@ from ui.pixel_widgets import load_pixel_font, pixel_font
 
 
 def main() -> None:
-    # Set OpenGL 3.3 Core Profile globally before any widget is created
+    # 在创建任何控件前全局设置 OpenGL 3.3 Core Profile。
     fmt = QSurfaceFormat()
     fmt.setVersion(3, 3)
     fmt.setProfile(QSurfaceFormat.CoreProfile)
@@ -22,7 +22,7 @@ def main() -> None:
 
     app = QApplication(sys.argv)
 
-    # Load and apply pixel bitmap font as the application default
+    # 加载像素位图字体，并作为应用默认字体。
     load_pixel_font()
     app.setFont(pixel_font(12))
 

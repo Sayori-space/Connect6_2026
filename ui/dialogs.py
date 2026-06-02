@@ -1,11 +1,11 @@
 """
-Dialogs – pixel-art styled modal windows.
+Dialogs：像素风模态窗口。
 
-AIConfigDialog matches the reference ChooseUi screenshot:
-  • Star-field background
-  • Two large stone-shape buttons for colour selection (Black / White)
-  • Left/right arrow carousel for AI difficulty
-  • PixelButton action buttons
+AIConfigDialog 与参考 ChooseUi 截图一致：
+  • 星空背景
+  • 两个用于选择颜色（黑 / 白）的大号棋子形按钮
+  • 用左右箭头切换 AI 难度的轮播控件
+  • PixelButton 操作按钮
 """
 
 from typing import List, Optional
@@ -23,7 +23,7 @@ from models.player import PlayerType
 from ui.pixel_widgets import PixelButton, StarBackground, pixel_font
 
 
-# ── Shared helper ──────────────────────────────────────────────────────
+# ── 共享辅助方法 ─────────────────────────────────────────────────────
 
 def _lbl(text: str, size: int = 14, dim: bool = False) -> QLabel:
     l = QLabel(text)
@@ -34,16 +34,16 @@ def _lbl(text: str, size: int = 14, dim: bool = False) -> QLabel:
     return l
 
 
-# ── Stone-selector button ──────────────────────────────────────────────
+# ── 棋子选择按钮 ─────────────────────────────────────────────────────
 
 class _StoneBtn(QPushButton):
-    """Large rounded square that looks like a stone; toggles selected state."""
+    """看起来像棋子的大号圆角方块；用于切换选中状态。"""
 
     SIZE = 64
 
     def __init__(self, stone_color: int, parent=None):
         super().__init__(parent)
-        self._stone_color = stone_color   # BLACK=1, WHITE=2
+        self._stone_color = stone_color   # BLACK=1，WHITE=2
         self._selected = False
         self.setFixedSize(self.SIZE, self.SIZE)
         self.setCursor(Qt.PointingHandCursor)
@@ -58,17 +58,17 @@ class _StoneBtn(QPushButton):
         p.setRenderHint(QPainter.Antialiasing)
         r = self.SIZE
 
-        # Fill
-        if self._stone_color == 1:   # black stone
+        # 填充
+        if self._stone_color == 1:   # 黑子
             base = QColor(30, 30, 30)
-        else:                         # white stone
+        else:                         # 白子
             base = QColor(230, 230, 230)
 
         p.setPen(Qt.NoPen)
         p.setBrush(base)
         p.drawRoundedRect(0, 0, r, r, 14, 14)
 
-        # Selection ring (golden yellow)
+        # 选中环（金黄色）
         if self._selected:
             pen = QPen(QColor(theme.WIN_GLOW), 3)
             p.setPen(pen)
@@ -76,10 +76,10 @@ class _StoneBtn(QPushButton):
             p.drawRoundedRect(2, 2, r - 4, r - 4, 12, 12)
 
 
-# ── Difficulty carousel ────────────────────────────────────────────────
+# ── 难度轮播 ─────────────────────────────────────────────────────────
 
 class _Carousel(QWidget):
-    """◁ option ▷ selector."""
+    """◁ 选项 ▷ 选择器。"""
 
     def __init__(self, options: List[str], parent=None):
         super().__init__(parent)
@@ -124,7 +124,7 @@ class _Carousel(QWidget):
         return self._options[self._index]
 
 
-# ── Game-over dialog ───────────────────────────────────────────────────
+# ── 游戏结束对话框 ───────────────────────────────────────────────────
 
 class GameOverDialog(QDialog):
     def __init__(self, message: str, parent=None):
@@ -157,23 +157,23 @@ class GameOverDialog(QDialog):
         QPainter(self).fillRect(self.rect(), QColor(theme.BG))
 
 
-# ── AI config dialog ───────────────────────────────────────────────────
+# ── AI 配置对话框 ────────────────────────────────────────────────────
 
 class AIConfigDialog(QDialog):
     """
-    Matches ChooseUi screenshot:
-      star background · stone colour selector · AI difficulty carousel
+    与 ChooseUi 截图一致：
+      星空背景 · 棋子颜色选择器 · AI 难度轮播
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._result: Optional[GameConfig] = None
-        self._selected_color = 1   # 1=BLACK(human plays black), 2=WHITE
+        self._selected_color = 1   # 1=BLACK（人类执黑），2=WHITE
 
         self.setWindowTitle("人机对战")
         self.setModal(True)
         self.setStyleSheet(f"background: {theme.BG};")
-        # Scale with parent window; fall back to a sensible default
+        # 随父窗口缩放；没有父窗口时使用合理默认值
         if parent is not None:
             pw, ph = parent.width(), parent.height()
             w = max(480, min(680, int(pw * 0.42)))
@@ -182,7 +182,7 @@ class AIConfigDialog(QDialog):
             w, h = 560, 440
         self.setFixedSize(w, h)
 
-        # Star background
+        # 星空背景
         self._bg = StarBackground(count=120, parent=self)
         self._bg.setGeometry(self.rect())
         self._bg.lower()
@@ -191,10 +191,10 @@ class AIConfigDialog(QDialog):
         lay.setContentsMargins(36, 28, 36, 24)
         lay.setSpacing(14)
 
-        # Title
+        # 标题
         lay.addWidget(_lbl("请选择颜色", size=14))
 
-        # Stone buttons
+        # 棋子按钮
         stone_row = QHBoxLayout()
         stone_row.setSpacing(24)
         stone_row.setAlignment(Qt.AlignCenter)
@@ -206,16 +206,16 @@ class AIConfigDialog(QDialog):
         stone_row.addWidget(self._black_btn)
         stone_row.addWidget(self._white_btn)
         lay.addLayout(stone_row)
-        self._pick(1)   # default: human plays black
+        self._pick(1)   # 默认：人类执黑
 
-        # AI difficulty
+        # AI 难度
         lay.addWidget(_lbl("AI难度预设", size=13, dim=True))
-        self._carousel = _Carousel(["随机AI"])   # extend list for more AI levels
+        self._carousel = _Carousel(["随机AI"])   # 扩展此列表可加入更多 AI 等级
         lay.addWidget(self._carousel, 0, Qt.AlignCenter)
 
         lay.addStretch(1)
 
-        # Action buttons
+        # 操作按钮
         btn_row = QHBoxLayout()
         btn_row.setSpacing(16)
 
@@ -235,12 +235,12 @@ class AIConfigDialog(QDialog):
         self._white_btn.set_selected(color == 2)
 
     def _on_start(self) -> None:
-        if self._selected_color == 1:   # human plays black
+        if self._selected_color == 1:   # 人类执黑
             self._result = GameConfig(
                 black_type=PlayerType.HUMAN, white_type=PlayerType.AI,
                 black_name="玩家", white_name="AI",
             )
-        else:                            # human plays white
+        else:                            # 人类执白
             self._result = GameConfig(
                 black_type=PlayerType.AI, white_type=PlayerType.HUMAN,
                 black_name="AI", white_name="玩家",
@@ -255,7 +255,7 @@ class AIConfigDialog(QDialog):
         QPainter(self).fillRect(self.rect(), QColor(theme.BG))
 
 
-# ── New game dialog (local) ────────────────────────────────────────────
+# ── 新游戏对话框（本地）──────────────────────────────────────────────
 
 class NewGameDialog(QDialog):
     def __init__(self, current_config: GameConfig, parent=None):

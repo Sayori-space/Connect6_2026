@@ -1,6 +1,6 @@
 """
-RulesScreen – Connect6 rules explanation page.
-Pixel indie-game style: black background, white pixel-font text, PixelButton back button.
+RulesScreen：六子棋规则说明页。
+像素独立游戏风格：黑色背景、白色像素字体文本、PixelButton 返回按钮。
 """
 
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -13,7 +13,7 @@ import ui.theme as theme
 from ui.pixel_widgets import PixelButton, pixel_font
 
 
-# ── Rules content ──────────────────────────────────────────────────────
+# ── 规则内容 ─────────────────────────────────────────────────────────
 
 _SECTIONS = [
     ("基本介绍", [
@@ -49,7 +49,7 @@ _SECTIONS = [
 
 
 def _section_widget() -> QWidget:
-    """Build the full rules content as a QWidget with pixel labels."""
+    """用像素标签构建完整规则内容 QWidget。"""
     container = QWidget()
     container.setStyleSheet("background: transparent;")
     lay = QVBoxLayout(container)
@@ -60,7 +60,7 @@ def _section_widget() -> QWidget:
     body_font    = pixel_font(16)
 
     for title, lines in _SECTIONS:
-        # Section heading
+        # 小节标题
         h = QLabel(f"[ {title} ]")
         h.setFont(heading_font)
         h.setStyleSheet(f"color: {theme.FG}; background: transparent;")
@@ -68,7 +68,7 @@ def _section_widget() -> QWidget:
         lay.addWidget(h)
         lay.addSpacing(10)
 
-        # Bullet lines
+        # 项目符号文本行
         for line in lines:
             b = QLabel(f"  ▸  {line}")
             b.setFont(body_font)
@@ -84,7 +84,7 @@ def _section_widget() -> QWidget:
     return container
 
 
-# ── Screen ─────────────────────────────────────────────────────────────
+# ── 页面 ─────────────────────────────────────────────────────────────
 
 class RulesScreen(QWidget):
     go_back = pyqtSignal()
@@ -100,7 +100,7 @@ class RulesScreen(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Title ─────────────────────────────────────────────────────
+        # ── 标题 ─────────────────────────────────────────────────────
         title = QLabel("六子棋  规则讲解")
         title.setFont(pixel_font(30))
         title.setStyleSheet(f"color: {theme.FG}; background: transparent;")
@@ -108,7 +108,7 @@ class RulesScreen(QWidget):
         title.setFixedHeight(96)
         root.addWidget(title)
 
-        # ── Scrollable content ────────────────────────────────────────
+        # ── 可滚动内容 ───────────────────────────────────────────────
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet(f"""
@@ -137,7 +137,7 @@ class RulesScreen(QWidget):
         scroll.setWidget(wrapper)
         root.addWidget(scroll, 1)
 
-        # ── Footer / back button ──────────────────────────────────────
+        # ── 页脚 / 返回按钮 ──────────────────────────────────────────
         footer = QWidget()
         footer.setFixedHeight(80)
         footer.setStyleSheet(f"background: {theme.BG};")

@@ -5,8 +5,8 @@ from models.move import Move
 
 class Board:
     """
-    Stores the grid state and full move history.
-    Completely decoupled from UI and game-flow logic.
+    保存棋盘状态和完整落子历史。
+    与 UI 和游戏流程逻辑完全解耦。
     """
 
     def __init__(self, size: int = DEFAULT_BOARD_SIZE):
@@ -15,11 +15,11 @@ class Board:
         self._history: List[Move] = []
 
     # ------------------------------------------------------------------ #
-    # Mutation
+    # 状态修改
     # ------------------------------------------------------------------ #
 
     def place(self, move: Move) -> bool:
-        """Place a stone.  Returns True on success, False if position is invalid."""
+        """放置一枚棋子；成功返回 True，位置无效则返回 False。"""
         if not self.is_valid_position(move.row, move.col):
             return False
         if self._grid[move.row][move.col] != EMPTY:
@@ -29,7 +29,7 @@ class Board:
         return True
 
     def undo(self) -> Optional[Move]:
-        """Remove the last stone.  Returns the removed Move, or None."""
+        """移除最后一枚棋子；返回被移除的 Move，或 None。"""
         if not self._history:
             return None
         move = self._history.pop()
@@ -37,11 +37,11 @@ class Board:
         return move
 
     # ------------------------------------------------------------------ #
-    # Queries
+    # 查询
     # ------------------------------------------------------------------ #
 
     def get(self, row: int, col: int) -> int:
-        """Return the occupant at (row, col); -1 if out of bounds."""
+        """返回 (row, col) 处的占用状态；越界时返回 -1。"""
         if self.is_valid_position(row, col):
             return self._grid[row][col]
         return -1

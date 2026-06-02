@@ -1,12 +1,12 @@
 """
-BoardWidget – pixel-art game board.
+BoardWidget：像素风游戏棋盘。
 
-Visual changes vs. the original:
-  • Pure black background; dark-gray playing area (#2A2A2A).
-  • White grid lines (no wood colours).
-  • Row numbers (1-19) on the left, column letters (A-S) on the top.
-  • Star-point markers replaced with subtle gray dots.
-  • Win-glow colour is golden yellow for visibility on both stone colours.
+相对原始版本的视觉变化：
+  • 纯黑背景，深灰色棋盘区域（#2A2A2A）。
+  • 白色网格线，不使用木纹配色。
+  • 左侧显示行号（1-19），顶部显示列字母（A-S）。
+  • 星位标记替换为低调的灰色圆点。
+  • 获胜高光为金黄色，保证黑白棋子上都清晰可见。
 """
 
 import math
@@ -25,27 +25,31 @@ from utils.constants import (
     STONE_RADIUS_RATIO, WHITE, WIN_PULSE_SPEED,
 )
 
-# Outer breathing room from widget edge (all sides)
+# 控件边缘四周的外部留白
 _OUTER      = 14
 
-# Asymmetric padding: left/top reserve space for coordinate labels + outer margin
-_PAD_LEFT   = 52 + _OUTER   # row-number column width  + outer margin
-_PAD_TOP    = 46 + _OUTER   # column-letter row height + outer margin
+# 非对称内边距下限：左侧/顶部为坐标标签和外边距预留空间。
+_PAD_LEFT   = 52 + _OUTER   # 行号列宽 + 外边距
+_PAD_TOP    = 46 + _OUTER   # 列字母行高 + 外边距
 _PAD_RIGHT  = _OUTER + 4
 _PAD_BOTTOM = _OUTER + 4
+_COORD_BAND_MIN = 54.0
+_COORD_BAND_MAX = 104.0
+_COORD_FONT_MIN = 14
+_COORD_FONT_MAX = 30
 
-# Slightly shrink board in its drawing area to leave more room for coordinates.
+# 在绘制区域内略微缩小棋盘，为坐标留出更多空间。
 _BOARD_DRAW_SCALE = 0.95
 
-# Star-point positions for a 19×19 board
-_STAR_POINTS_19 = [
-    (3, 3),  (3, 9),  (3, 15),
-    (9, 3),  (9, 9),  (9, 15),
-    (15, 3), (15, 9), (15, 15),
+# 19×19 棋盘的参考点：中心点 + 四个靠近角落的点
+_REFERENCE_POINTS_19 = [
+    (3, 3), (3, 15),
+    (9, 9),
+    (15, 3), (15, 15),
 ]
 
 
-# ── Stone animation ────────────────────────────────────────────────────
+# ── 棋子动画 ──────────────────────────────────────────────────────────
 
 class _StoneAnim:
     def __init__(self, row: int, col: int, color: int):
@@ -70,7 +74,7 @@ class _StoneAnim:
         return self._progress >= 1.0
 
 
-# ── Main widget ────────────────────────────────────────────────────────
+# ── 主控件 ────────────────────────────────────────────────────────────
 
 class BoardWidget(QWidget):
     stone_clicked  = pyqtSignal(int, int)
@@ -100,7 +104,7 @@ class BoardWidget(QWidget):
         self.setMinimumSize(400, 400)
         self.setStyleSheet(f"background: {theme.BG};")
 
-    # ── Public API ─────────────────────────────────────────────────────
+    # ── 公共 API ─────────────────────────────────────────────────────
 
     def set_board(self, board) -> None:
         self._board = board
@@ -134,7 +138,7 @@ class BoardWidget(QWidget):
         self._winning_line = []
         self.update()
 
-    # ── Animation ──────────────────────────────────────────────────────
+    # ── 动画 ─────────────────────────────────────────────────────────
 
     def _tick(self) -> None:
         dt = 1.0 / ANIM_FPS
@@ -150,7 +154,7 @@ class BoardWidget(QWidget):
         if needs:
             self.update()
 
-    # ── Coordinate helpers ─────────────────────────────────────────────
+    # ── 坐标辅助方法 ─────────────────────────────────────────────────
 
     def _draw_scale(self) -> float:
         win = self.window()
@@ -158,25 +162,38 @@ class BoardWidget(QWidget):
             return 1.0
         return _BOARD_DRAW_SCALE
 
+    def _coordinate_band_size(self) -> float:
+        raw_w = max(1.0, self.width() - _PAD_LEFT - _PAD_RIGHT)
+        raw_h = max(1.0, self.height() - _PAD_TOP - _PAD_BOTTOM)
+        raw_cell = min(raw_w, raw_h) / max(1, self._board_size - 1)
+        return max(_COORD_BAND_MIN, min(_COORD_BAND_MAX, raw_cell * 0.9))
+
+    def _padding(self) -> Tuple[float, float, float, float]:
+        band = self._coordinate_band_size()
+        return _OUTER + band, _OUTER + band, float(_PAD_RIGHT), float(_PAD_BOTTOM)
+
     def _cell_size(self) -> float:
-        w_avail = self.width()  - _PAD_LEFT - _PAD_RIGHT
-        h_avail = self.height() - _PAD_TOP  - _PAD_BOTTOM
-        raw = min(w_avail, h_avail) / (self._board_size - 1)
+        pad_left, pad_top, pad_right, pad_bottom = self._padding()
+        w_avail = self.width()  - pad_left - pad_right
+        h_avail = self.height() - pad_top  - pad_bottom
+        raw = max(1.0, min(w_avail, h_avail)) / (self._board_size - 1)
         return raw * self._draw_scale()
 
     def _to_pixel(self, row: int, col: int) -> QPointF:
         cs = self._cell_size()
-        return QPointF(_PAD_LEFT + col * cs, _PAD_TOP + row * cs)
+        pad_left, pad_top, _, _ = self._padding()
+        return QPointF(pad_left + col * cs, pad_top + row * cs)
 
     def _to_cell(self, px: float, py: float) -> Optional[Tuple[int, int]]:
         cs = self._cell_size()
-        col = round((px - _PAD_LEFT) / cs)
-        row = round((py - _PAD_TOP)  / cs)
+        pad_left, pad_top, _, _ = self._padding()
+        col = round((px - pad_left) / cs)
+        row = round((py - pad_top)  / cs)
         if 0 <= row < self._board_size and 0 <= col < self._board_size:
             return row, col
         return None
 
-    # ── Paint ──────────────────────────────────────────────────────────
+    # ── 绘制 ─────────────────────────────────────────────────────────
 
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
@@ -191,14 +208,15 @@ class BoardWidget(QWidget):
     def _draw_bg(self, p: QPainter) -> None:
         cs = self._cell_size()
         n  = self._board_size
+        pad_left, pad_top, _, _ = self._padding()
 
-        # Whole widget: black
+        # 整个控件：黑色
         p.fillRect(self.rect(), QColor(theme.BG))
 
-        # Playing area: dark gray
+        # 棋盘区域：深灰色
         board_rect = QRectF(
-            _PAD_LEFT - cs * 0.5,
-            _PAD_TOP  - cs * 0.5,
+            pad_left - cs * 0.5,
+            pad_top  - cs * 0.5,
             cs * (n - 1) + cs,
             cs * (n - 1) + cs,
         )
@@ -207,19 +225,23 @@ class BoardWidget(QWidget):
     def _draw_coordinates(self, p: QPainter) -> None:
         cs  = self._cell_size()
         n   = self._board_size
+        pad_left, pad_top, _, _ = self._padding()
 
-        # Keep coordinate text readable and prevent overlap with first-row/col stones.
+        # 保持坐标文本可读，并避免与第一行/列棋子重叠。
         radius = cs * STONE_RADIUS_RATIO
-        stone_clearance_y = radius + 3.0
+        stone_clearance_y = radius + 5.0
 
         top_band_y = 2.0
-        top_band_h = max(12.0, _PAD_TOP - stone_clearance_y - top_band_y)
+        top_band_h = max(18.0, pad_top - stone_clearance_y - top_band_y)
         left_band_x = float(_OUTER)
-        left_band_right = min(_PAD_LEFT - 8.0, _PAD_LEFT - radius - 2.0)
-        left_band_w = max(20.0, left_band_right - left_band_x)
+        left_band_right = min(pad_left - 8.0, pad_left - radius - 2.0)
+        left_band_w = max(28.0, left_band_right - left_band_x)
 
-        # Prefer label-area-driven sizing (readability), then clamp by fit.
-        base_size = max(13, int(min(top_band_h * 0.90, left_band_w * 1.10)))
+        # 窗口放大时按棋格尺寸放大坐标，再按标签区域收紧以避免重叠。
+        base_size = max(
+            _COORD_FONT_MIN,
+            min(_COORD_FONT_MAX, int(cs * 0.44)),
+        )
         fnt_size = base_size
         fnt = pixel_font(fnt_size)
         metrics = QFontMetrics(fnt)
@@ -238,19 +260,19 @@ class BoardWidget(QWidget):
         p.setFont(fnt)
         p.setPen(QColor(theme.DIM))
 
-        # Column letters (A, B, C …)
+        # 列字母（A、B、C …）
         for c in range(n):
             letter = chr(ord('A') + c)
-            cx = _PAD_LEFT + c * cs
+            cx = pad_left + c * cs
             p.drawText(
                 QRectF(cx - cs / 2, top_band_y, cs, top_band_h),
                 Qt.AlignCenter, letter,
             )
 
-        # Row numbers (1, 2, 3 …)
+        # 行号（1、2、3 …）
         for r in range(n):
             num = str(r + 1)
-            cy = _PAD_TOP + r * cs
+            cy = pad_top + r * cs
             p.drawText(
                 QRectF(left_band_x, cy - cs / 2, left_band_w, cs),
                 Qt.AlignCenter, num,
@@ -267,11 +289,13 @@ class BoardWidget(QWidget):
     def _draw_star_points(self, p: QPainter) -> None:
         if self._board_size != 19:
             return
+        cs = self._cell_size()
+        dot_r = max(3.0, min(6.0, cs * 0.09))
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(theme.STAR_POINT))
-        for r, c in _STAR_POINTS_19:
+        p.setBrush(QColor(245, 245, 245, 190))
+        for r, c in _REFERENCE_POINTS_19:
             ctr = self._to_pixel(r, c)
-            p.drawEllipse(ctr, 3.0, 3.0)
+            p.drawEllipse(ctr, dot_r, dot_r)
 
     def _draw_stones(self, p: QPainter) -> None:
         if self._board is None:
@@ -302,7 +326,7 @@ class BoardWidget(QWidget):
         r = radius * max(0.01, scale)
         p.save()
 
-        # Win glow
+        # 获胜高光
         if glowing:
             pulse    = 0.5 + 0.5 * math.sin(self._win_phase)
             glow_r   = r * 1.55
@@ -315,13 +339,13 @@ class BoardWidget(QWidget):
                        2 * glow_r, 2 * glow_r)
             )
 
-        # Drop shadow
+        # 投影
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(0, 0, 0, 80))
         p.drawEllipse(QRectF(center.x() - r + 2, center.y() - r + 3,
                              2 * r, 2 * r))
 
-        # Stone gradient
+        # 棋子渐变
         grad = QRadialGradient(center.x() - r * 0.3,
                                center.y() - r * 0.35, r * 1.3)
         if color == BLACK:
@@ -337,7 +361,7 @@ class BoardWidget(QWidget):
         p.setBrush(QBrush(grad))
         p.drawEllipse(QRectF(center.x() - r, center.y() - r, 2 * r, 2 * r))
 
-        # Current-turn marker: small contrasting dot at centre
+        # 当前回合标记：中心的小型反差色圆点
         if current:
             dot_r = r * 0.27
             p.setPen(Qt.NoPen)
@@ -373,7 +397,7 @@ class BoardWidget(QWidget):
         p.setBrush(fill)
         p.drawEllipse(rect)
 
-    # ── Mouse events ───────────────────────────────────────────────────
+    # ── 鼠标事件 ─────────────────────────────────────────────────────
 
     def mouseMoveEvent(self, event) -> None:
         cell = self._to_cell(event.x(), event.y())
@@ -397,12 +421,16 @@ class BoardWidget(QWidget):
                 self.stone_clicked.emit(*cell)
 
     def resizeEvent(self, _event) -> None:
-        # Prevent the widget from being wider than its square drawing area.
-        # When height-constrained, cs = h_avail / (n-1); board visual width
-        # ≈ _PAD_LEFT + cs * n + _PAD_RIGHT.  Cap there to avoid blank gap.
+        # 防止控件宽度超过方形绘制区域。
+        # 高度受限时，cs = h_avail / (n-1)；棋盘视觉宽度
+        # 约为 _PAD_LEFT + cs * n + _PAD_RIGHT。限制宽度可避免空白间隙。
         h = self.height()
         if h > 0:
-            cs = ((h - _PAD_TOP - _PAD_BOTTOM) / (self._board_size - 1)) * self._draw_scale()
-            ideal_w = int(_PAD_LEFT + cs * self._board_size + _PAD_RIGHT + 8)
+            pad_left, pad_top, pad_right, pad_bottom = self._padding()
+            cs = (
+                max(1.0, h - pad_top - pad_bottom)
+                / (self._board_size - 1)
+            ) * self._draw_scale()
+            ideal_w = int(pad_left + cs * self._board_size + pad_right + 8)
             self.setMaximumWidth(max(400, ideal_w))
         self.update()

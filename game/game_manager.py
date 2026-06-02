@@ -1,14 +1,13 @@
 """
-GameManager – central game-flow controller.
+GameManager：游戏流程的核心控制器。
 
-Responsibilities:
-  * Owns the Board and tracks whose turn it is.
-  * Validates and records moves.
-  * Detects win / draw conditions.
-  * Exposes a clean callback API so that UI, AI, and tests can all observe
-    game events without any circular imports.
+职责：
+  * 持有 Board，并跟踪当前轮到哪一方。
+  * 校验并记录落子。
+  * 检测胜负和平局条件。
+  * 提供清晰的回调 API，让 UI、AI 和测试都能观察游戏事件，同时避免循环导入。
 
-This module has ZERO dependency on PyQt5 or any UI code.
+本模块不依赖 PyQt5 或任何 UI 代码。
 """
 
 from typing import Callable, Dict, List, Optional, Tuple
@@ -22,21 +21,21 @@ from utils.constants import BLACK, WHITE
 
 
 class GameState:
-    WAITING          = "waiting"        # waiting for the current player's input
-    AWAITING_CONFIRM = "confirm"        # human placed all stones; waiting for confirm
-    GAME_OVER        = "game_over"      # the game has ended
+    WAITING          = "waiting"        # 等待当前玩家输入
+    AWAITING_CONFIRM = "confirm"        # 人类玩家已落满棋子，等待确认
+    GAME_OVER        = "game_over"      # 游戏已结束
 
 
 class GameManager:
     """
-    Pure-logic game controller.
+    纯逻辑游戏控制器。
 
-    Communicate with the outside world exclusively via the ``on_*`` callbacks.
-    Set them before calling :py:meth:`start`.
+    只通过 ``on_*`` 回调与外部通信。
+    请在调用 :py:meth:`start` 前设置这些回调。
     """
 
     # ------------------------------------------------------------------
-    # Construction
+    # 构造
     # ------------------------------------------------------------------
 
     def __init__(self, config: GameConfig):
@@ -50,33 +49,33 @@ class GameManager:
 
         self._state: str = GameState.WAITING
         self._current_color: int = BLACK
-        self._move_number: int = 1          # 1-indexed; increments each full turn
-        self._stones_this_turn: int = 0     # stones placed in the current turn
+        self._move_number: int = 1          # 从 1 开始计数；每完成一回合递增
+        self._stones_this_turn: int = 0     # 当前回合已落棋子数
         self._stones_needed: int = stones_per_turn(1)
         self._pending_moves: List[Move] = []
-        self._turn_history: List[int] = []  # stone-count of each completed turn
+        self._turn_history: List[int] = []  # 每个已完成回合的棋子数
 
         self._winner: Optional[int] = None
         self._winning_line: List[Tuple[int, int]] = []
 
-        # --- Callbacks (set by the host, e.g. GamePage) ---
-        # Called after every accepted stone placement
+        # --- 回调（由宿主设置，例如 GamePage） ---
+        # 每次成功落子后调用
         self.on_stone_placed: Optional[Callable[[Move], None]] = None
-        # Called when the active player / stones-needed changes
+        # 当前玩家或所需落子数变化时调用
         self.on_turn_changed: Optional[Callable[[int, int], None]] = None
-        # Called when the game ends; winner is None for a draw
+        # 游戏结束时调用；winner 为 None 表示平局
         self.on_game_over: Optional[Callable[[Optional[int], List[Tuple[int, int]]], None]] = None
-        # Called after undo(); receives the list of moves that were removed
+        # undo() 后调用；接收被移除的落子列表
         self.on_undo: Optional[Callable[[List[Move]], None]] = None
-        # Called when the current player is an AI and needs to move
+        # 当前玩家是 AI 且需要落子时调用
         self.on_request_ai_move: Optional[Callable[[int], None]] = None
-        # Called when a human has placed all required stones and must confirm
+        # 人类玩家已落满本回合棋子且需要确认时调用
         self.on_confirm_needed: Optional[Callable[[], None]] = None
-        # Called after undo_last_stone(); receives the removed move
+        # undo_last_stone() 后调用；接收被移除的落子
         self.on_stone_removed: Optional[Callable[[Move], None]] = None
 
     # ------------------------------------------------------------------
-    # Read-only properties
+    # 只读属性
     # ------------------------------------------------------------------
 
     @property
@@ -109,33 +108,32 @@ class GameManager:
 
     @property
     def turn_history(self) -> List[int]:
-        """Stone counts for each completed GameManager turn (1, 2, 2, 2, ...)."""
+        """每个已完成 GameManager 回合的棋子数（1, 2, 2, 2, ...）。"""
         return list(self._turn_history)
 
     @property
     def pending_moves(self) -> List[Move]:
-        """Moves placed in the current (not yet confirmed/advanced) turn."""
+        """当前回合中已落下但尚未确认或推进的棋子。"""
         return list(self._pending_moves)
 
     # ------------------------------------------------------------------
-    # Public API
+    # 公共 API
     # ------------------------------------------------------------------
 
     def start(self):
-        """Begin (or restart after reset) the game."""
+        """开始游戏，或在重置后重新开始。"""
         self._state = GameState.WAITING
         self._notify_turn()
         self._maybe_trigger_ai()
 
     def try_place(self, row: int, col: int) -> bool:
         """
-        Attempt to place a stone for the current player at (row, col).
+        尝试为当前玩家在 (row, col) 处落子。
 
-        For human players this may transition into AWAITING_CONFIRM once all
-        required stones for the turn have been placed.  Call confirm_turn()
-        to finalise the turn.
+        对人类玩家来说，本回合所需棋子落满后可能进入 AWAITING_CONFIRM。
+        调用 confirm_turn() 才会最终结束该回合。
 
-        Returns True if the placement was accepted.
+        落子被接受时返回 True。
         """
         if self._state != GameState.WAITING:
             return False
@@ -150,7 +148,7 @@ class GameManager:
         if self.on_stone_placed:
             self.on_stone_placed(move)
 
-        # Check for win after every stone
+        # 每次落子后都检查是否获胜
         won, line = check_win(self.board, move)
         if won:
             self._end_game(self._current_color, line)
@@ -158,7 +156,7 @@ class GameManager:
 
         if self._stones_this_turn >= self._stones_needed:
             if self.current_player.player_type == PlayerType.HUMAN:
-                # Wait for the human to explicitly confirm
+                # 等待人类玩家显式确认
                 self._state = GameState.AWAITING_CONFIRM
                 if self.on_confirm_needed:
                     self.on_confirm_needed()
@@ -169,9 +167,9 @@ class GameManager:
 
     def confirm_turn(self) -> bool:
         """
-        Human player confirms their stone placements and ends their turn.
+        人类玩家确认本回合落子并结束回合。
 
-        Only valid in AWAITING_CONFIRM state.  Returns True on success.
+        仅在 AWAITING_CONFIRM 状态下有效。成功返回 True。
         """
         if self._state != GameState.AWAITING_CONFIRM:
             return False
@@ -181,17 +179,17 @@ class GameManager:
 
     def undo_last_stone(self) -> bool:
         """
-        Remove the most recently placed stone within the *current* turn.
+        移除 *当前* 回合中最近放置的一枚棋子。
 
-        Works both while placing (WAITING) and after all stones are placed
-        (AWAITING_CONFIRM).  Returns True if a stone was removed.
+        在落子中（WAITING）和已落满待确认（AWAITING_CONFIRM）状态都可用。
+        成功移除棋子时返回 True。
         """
         if self._state not in (GameState.WAITING, GameState.AWAITING_CONFIRM):
             return False
         if self._stones_this_turn == 0:
             return False
 
-        # Revert to WAITING if we were in the confirm state
+        # 如果处于确认状态，则回退到 WAITING
         self._state = GameState.WAITING
 
         m = self.board.undo()
@@ -205,13 +203,12 @@ class GameManager:
 
     def undo(self) -> bool:
         """
-        Undo the most recent *complete* turn (or clear the current partial turn).
+        撤销最近一个 *完整* 回合，或清空当前未完成回合。
 
-        * If any stones have been placed in the current turn (including
-          AWAITING_CONFIRM), all of them are removed.
-        * Otherwise the previous player's confirmed turn is reversed.
+        * 如果当前回合已有落子（包括 AWAITING_CONFIRM），则全部移除。
+        * 否则撤销上一位玩家已确认的回合。
 
-        Returns True if anything was undone.
+        有内容被撤销时返回 True。
         """
         if self._state == GameState.GAME_OVER:
             return False
@@ -219,7 +216,7 @@ class GameManager:
         undone: List[Move] = []
 
         if self._stones_this_turn > 0:
-            # Undo the current partial / awaiting-confirm turn
+            # 撤销当前未完成或待确认回合
             for _ in range(self._stones_this_turn):
                 m = self.board.undo()
                 if m:
@@ -228,7 +225,7 @@ class GameManager:
             self._pending_moves.clear()
             self._state = GameState.WAITING
         elif self._turn_history:
-            # Undo the previous player's completed turn
+            # 撤销上一位玩家已完成的回合
             prev_count = self._turn_history.pop()
             self._current_color = WHITE if self._current_color == BLACK else BLACK
             self._move_number -= 1
@@ -249,14 +246,21 @@ class GameManager:
         return True
 
     def resign(self):
-        """The current player forfeits the game."""
+        """当前玩家认输。"""
         if self._state not in (GameState.WAITING, GameState.AWAITING_CONFIRM):
             return
         winner = WHITE if self._current_color == BLACK else BLACK
         self._end_game(winner, [])
 
+    def declare_draw(self) -> bool:
+        """Immediately end the game as a draw."""
+        if self._state == GameState.GAME_OVER:
+            return False
+        self._end_game(None, [])
+        return True
+
     # ------------------------------------------------------------------
-    # Private helpers
+    # 私有辅助方法
     # ------------------------------------------------------------------
 
     def _advance_turn(self):

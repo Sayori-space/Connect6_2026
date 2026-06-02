@@ -1,9 +1,9 @@
 """
-Abstract AI interface for Connect6.
+六子棋 AI 抽象接口。
 
-All AI implementations must subclass BaseAI and implement ``get_moves``.
-The host (MainWindow) calls ``get_moves`` off the GUI thread when it's the
-AI's turn, then feeds the returned moves to GameManager via ``try_place``.
+所有 AI 实现都必须继承 BaseAI 并实现 ``get_moves``。
+当轮到 AI 落子时，宿主（MainWindow）会在 GUI 线程外调用 ``get_moves``，
+再通过 ``try_place`` 将返回的落子交给 GameManager。
 """
 
 from abc import ABC, abstractmethod
@@ -14,25 +14,24 @@ from models.move import Move
 
 
 class BaseAI(ABC):
-    """Abstract base class for all Connect6 AI engines."""
+    """所有六子棋 AI 引擎的抽象基类。"""
 
     @abstractmethod
     def get_moves(self, board: Board, color: int, count: int) -> List[Move]:
         """
-        Calculate the best move(s) for the current board position.
+        计算当前局面下的最佳落子。
 
-        Args:
-            board:  A *snapshot* of the current board.  Do NOT modify it.
-            color:  The stone color this AI controls (BLACK or WHITE).
-            count:  Number of stones to place this turn (1 on the very first
-                    move of the game, 2 on every subsequent turn).
+        参数：
+            board: 当前棋盘的 *快照*。不要修改它。
+            color: 该 AI 控制的棋子颜色（BLACK 或 WHITE）。
+            count: 本回合需要落下的棋子数（全局第一手为 1，之后每回合为 2）。
 
-        Returns:
-            A list of exactly ``count`` Move objects on distinct empty cells.
+        返回：
+            长度正好为 ``count`` 的 Move 列表，且都落在不同空位上。
         """
         ...
 
     @property
     def name(self) -> str:
-        """Human-readable AI name shown in the UI."""
+        """显示在 UI 中的可读 AI 名称。"""
         return self.__class__.__name__
