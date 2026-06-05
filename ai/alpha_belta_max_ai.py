@@ -1378,6 +1378,17 @@ class AlphaBeltaMaxAI(AlphaBeltaPlusAI):
                 deadline=deadline,
             )
         if not tactic:
+            opp = _opp(color)
+            opp_multi = self._find_multi_threat_attack(
+                cands, opp, 2, deadline=deadline)
+            if opp_multi:
+                block_pair = self._find_multi_threat_blocks(
+                    cands, color, 2, deadline=deadline)
+                if block_pair:
+                    tactic = block_pair
+                else:
+                    return min(stand_pat, -(_WIN - 5000 + max_ply - ply))
+        if not tactic:
             return stand_pat
 
         opp = _opp(color)
