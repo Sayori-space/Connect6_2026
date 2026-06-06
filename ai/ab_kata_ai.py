@@ -19,7 +19,7 @@ from ai.alpha_belta_max_ai import AlphaBeltaMaxAI
 from models.move import Move
 from utils.constants import BLACK, WHITE, EMPTY
 
-_NN_EVAL_WEIGHT = 0.30
+_NN_EVAL_WEIGHT = 0.50
 _NN_POLICY_BOOST = 800_000
 _MAX_CACHE = 50_000
 _COL_LABELS = "abcdefghjklmnopqrst"

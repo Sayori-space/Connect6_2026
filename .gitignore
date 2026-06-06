@@ -23,7 +23,16 @@ env/
 build/
 ai/_cython_core.c
 ai/_cython_core.*.pyd
-ai/kata_src/
+ai/kata_src/cpp/CMakeFiles/
+ai/kata_src/cpp/CMakeCache.txt
+ai/kata_src/cpp/cmake_install.cmake
+ai/kata_src/cpp/Makefile
+ai/kata_src/cpp/CPackConfig.cmake
+ai/kata_src/cpp/CPackSourceConfig.cmake
+ai/kata_src/.git/
+ai/kata_src/.omc/
+ai/kata_src/cpp/*.o
+ai/kata_src/cpp/*.a
 
 # ── KataGo 运行时产物 ─────────────────────────────────
 analysis_logs/
